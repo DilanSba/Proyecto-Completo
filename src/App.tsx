@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   FileText,
   ArrowUpRight,
-  Phone
+  Phone,
+  Moon
 } from 'lucide-react';
 import { QuoteInputs } from './types';
 import { calculateQuote } from './utils/calculations';
@@ -27,6 +28,7 @@ const LOGO_URL = "https://i.postimg.cc/44pJ0vXw/logo.png";
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [inputs, setInputs] = useState<QuoteInputs>({
     roofPlan: 'SILVER',
     roofSqft: 0,
@@ -65,13 +67,13 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] text-slate-900 font-sans selection:bg-blue-100 relative overflow-x-hidden">
+    <div className={`min-h-screen transition-colors duration-500 ${isDarkMode ? 'bg-slate-950 text-white' : 'bg-[#f1f5f9] text-slate-900'} font-sans selection:bg-blue-100 relative overflow-x-hidden`}>
       {/* High-Impact Background Elements */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-400/10 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-300/10 blur-[120px]" />
-        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-blue-500/5 blur-[100px]" />
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.02] mix-blend-multiply" />
+        <div className={`absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full ${isDarkMode ? 'bg-blue-900/20' : 'bg-blue-400/10'} blur-[120px]`} />
+        <div className={`absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full ${isDarkMode ? 'bg-indigo-900/20' : 'bg-blue-300/10'} blur-[120px]`} />
+        <div className={`absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full ${isDarkMode ? 'bg-blue-800/10' : 'bg-blue-500/5'} blur-[100px]`} />
+        <div className={`absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] ${isDarkMode ? 'opacity-[0.05] invert' : 'opacity-[0.02]'} mix-blend-multiply`} />
       </div>
 
       <div className="relative z-10">
@@ -211,25 +213,44 @@ export default function App() {
             </motion.div>
             
             <div className="flex flex-col items-center md:items-start">
-              <h1 className="text-lg md:text-xl lg:text-2xl font-black tracking-tighter text-[#1e3a8a] leading-none uppercase">
+              <h1 className={`text-lg md:text-xl lg:text-2xl font-black tracking-tighter ${isDarkMode ? 'text-blue-400' : 'text-[#1e3a8a]'} leading-none uppercase`}>
                 WINDMAR PROYECTO COMPLETO
               </h1>
-              <p className="text-[10px] md:text-[12px] text-blue-500/80 font-bold mt-1 tracking-tight">
+              <p className={`text-[10px] md:text-[12px] ${isDarkMode ? 'text-blue-300/80' : 'text-blue-500/80'} font-bold mt-1 tracking-tight`}>
                 Roofing, Solar y Baterías de alta ingeniería
               </p>
             </div>
           </div>
 
-          {/* Contact Info (Right Side) */}
-          <div className="flex flex-col items-center md:items-end gap-0">
-            <div className="flex items-center gap-2 text-[#f59e0b]">
-              <Phone className="w-4 h-4 md:w-5 md:h-5 fill-current" />
-              <span className="text-lg md:text-xl font-black tracking-tight">787-395-7766</span>
-            </div>
-            <p className="text-[9px] font-black text-[#1e3a8a] uppercase tracking-[0.15em]">LINEA WINDMAR HOME</p>
-            <div className="flex gap-3 text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-              <span>TELEMERCADEO - 811</span>
-              <span>VENTAS - 839</span>
+          <div className="flex items-center gap-4">
+            {/* Dark Mode Toggle */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={`p-2.5 rounded-2xl border transition-all shadow-lg flex items-center gap-2 ${
+                isDarkMode 
+                  ? 'bg-slate-800 border-slate-700 text-yellow-400 shadow-yellow-900/20' 
+                  : 'bg-white border-slate-200 text-slate-600 shadow-blue-900/10'
+              }`}
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">
+                {isDarkMode ? 'Modo Claro' : 'Modo Oscuro'}
+              </span>
+            </motion.button>
+
+            {/* Contact Info (Right Side) */}
+            <div className="flex flex-col items-center md:items-end gap-0">
+              <div className="flex items-center gap-2 text-[#f59e0b]">
+                <Phone className="w-4 h-4 md:w-5 md:h-5 fill-current" />
+                <span className="text-lg md:text-xl font-black tracking-tight">787-395-7766</span>
+              </div>
+              <p className={`text-[9px] font-black ${isDarkMode ? 'text-blue-400' : 'text-[#1e3a8a]'} uppercase tracking-[0.15em]`}>LINEA WINDMAR HOME</p>
+              <div className="flex gap-3 text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                <span>TELEMERCADEO - 811</span>
+                <span>VENTAS - 839</span>
+              </div>
             </div>
           </div>
         </div>
@@ -244,29 +265,28 @@ export default function App() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="lg:col-span-4 space-y-4"
         >
-          <section className="bg-white/90 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl shadow-black/20">
-            <div className="p-3 border-b border-slate-100 flex items-center justify-center bg-slate-50/50">
-              <div className="flex bg-slate-200/50 p-1 rounded-xl border border-slate-300 shadow-inner">
+          <section className={`${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-white/20'} backdrop-blur-md rounded-3xl border shadow-2xl shadow-black/20`}>
+            <div className={`p-3 border-b ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'} flex items-center justify-center`}>
+              <div className={`flex ${isDarkMode ? 'bg-slate-950/50 border-slate-700' : 'bg-slate-200/50 border-slate-300'} p-1 rounded-xl border shadow-inner`}>
                 <button 
                   onClick={() => updateInput('financing', 'WH')}
-                  className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${inputs.financing === 'WH' ? 'bg-white text-blue-700 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${inputs.financing === 'WH' ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'bg-white text-blue-700 shadow-md') : (isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')}`}
                 >
                   WH Financial
                 </button>
                 <button 
                   onClick={() => updateInput('financing', 'ORIENTAL')}
-                  className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${inputs.financing === 'ORIENTAL' ? 'bg-white text-blue-700 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${inputs.financing === 'ORIENTAL' ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'bg-white text-blue-700 shadow-md') : (isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')}`}
                 >
                   Oriental
                 </button>
               </div>
             </div>
-
             <div className="p-4 space-y-6">
               {/* Roofing Section */}
               <div className="space-y-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-100/50 shadow-sm">
-                  <h3 className="text-[10px] font-black text-blue-700 uppercase tracking-widest flex items-center gap-2">
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 ${isDarkMode ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-100/50'} rounded-lg border shadow-sm`}>
+                  <h3 className={`text-[10px] font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-700'} uppercase tracking-widest flex items-center gap-2`}>
                     <Home className="w-3.5 h-3.5" />
                     DETALLES DE ROOFING 🏠
                   </h3>
@@ -281,17 +301,18 @@ export default function App() {
                       { value: 'GOLD', label: 'Gold' },
                       { value: 'PLATINUM', label: 'Platinum' }
                     ]}
+                    isDarkMode={isDarkMode}
                   />
-                  <InputGroup label="Área (sqft)">
+                  <InputGroup label="Área (sqft)" isDarkMode={isDarkMode}>
                     <input 
                       type="number"
                       value={inputs.roofSqft}
                       onChange={(e) => updateInput('roofSqft', Number(e.target.value))}
-                      className="w-full bg-transparent text-sm font-bold outline-none"
+                      className={`w-full bg-transparent text-sm font-bold outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}
                     />
                   </InputGroup>
                   <div className="sm:col-span-2">
-                    <InputGroup label="% Área con Remoción">
+                    <InputGroup label="% Área con Remoción" isDarkMode={isDarkMode}>
                       <div className="flex items-center gap-3">
                         <input 
                           type="range"
@@ -300,10 +321,10 @@ export default function App() {
                           step="0.1"
                           value={inputs.removalPercentage}
                           onChange={(e) => updateInput('removalPercentage', Number(e.target.value))}
-                          className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                          className={`flex-1 h-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'} rounded-lg appearance-none cursor-pointer accent-blue-600`}
                         />
                         <div className="flex items-center gap-1 min-w-[60px] justify-end">
-                          <span className="text-sm font-bold text-slate-700">{Math.round(inputs.removalPercentage * 100)}%</span>
+                          <span className={`text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{Math.round(inputs.removalPercentage * 100)}%</span>
                         </div>
                       </div>
                     </InputGroup>
@@ -311,10 +332,10 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Solar Section */}
-              <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-100/50 shadow-sm">
-                  <h3 className="text-[10px] font-black text-blue-700 uppercase tracking-widest flex items-center gap-2">
+              {/* Energy Section */}
+              <div className="space-y-3">
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 ${isDarkMode ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-100/50'} rounded-lg border shadow-sm`}>
+                  <h3 className={`text-[10px] font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-700'} uppercase tracking-widest flex items-center gap-2`}>
                     <Sun className="w-3.5 h-3.5" />
                     SISTEMA SOLAR ☀️
                   </h3>
@@ -326,6 +347,7 @@ export default function App() {
                       value={inputs.panels}
                       onChange={(val) => updateInput('panels', Number(val))}
                       options={Object.keys(PANEL_PRICES).map(k => ({ value: Number(k), label: `${k} Placas` }))}
+                      isDarkMode={isDarkMode}
                     />
                   </div>
                   <div className="space-y-1">
@@ -334,6 +356,7 @@ export default function App() {
                       value={inputs.batteries}
                       onChange={(val) => updateInput('batteries', Number(val))}
                       options={[0, 1, 2, 3, 4].map(n => ({ value: n, label: `${n} Baterías` }))}
+                      isDarkMode={isDarkMode}
                     />
                   </div>
                 </div>
@@ -343,10 +366,11 @@ export default function App() {
                   icon={<ShieldCheck className="w-4 h-4" />}
                   active={inputs.extendedWarranty} 
                   onClick={() => updateInput('extendedWarranty', !inputs.extendedWarranty)} 
+                  isDarkMode={isDarkMode}
                 />
                 {(inputs.extendedWarranty) && (
-                  <div className="px-3 py-2 bg-blue-50/50 border border-blue-100 rounded-xl">
-                    <p className="text-[9px] font-bold text-blue-700 uppercase tracking-tight leading-tight">
+                  <div className={`px-3 py-2 ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50/50 border-blue-100'} border rounded-xl`}>
+                    <p className={`text-[9px] font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-700'} uppercase tracking-tight leading-tight`}>
                       {inputs.panels > 0 && inputs.batteries === 0 && "Incluye: Cobertura Solar ($0.15/watt)"}
                       {inputs.panels === 0 && inputs.batteries > 0 && "Incluye: Cobertura Batería ($3,000 c/u)"}
                       {inputs.panels > 0 && inputs.batteries > 0 && "Incluye: Cobertura Solar + Batería"}
@@ -358,18 +382,18 @@ export default function App() {
 
               {/* Financial Section */}
               <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-100/50 shadow-sm">
-                  <h3 className="text-[10px] font-black text-blue-700 uppercase tracking-widest flex items-center gap-2">
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 ${isDarkMode ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-100/50'} rounded-lg border shadow-sm`}>
+                  <h3 className={`text-[10px] font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-700'} uppercase tracking-widest flex items-center gap-2`}>
                     <DollarSign className="w-3.5 h-3.5" />
                     AJUSTES FINANCIEROS 💰
                   </h3>
                 </div>
-                <InputGroup label="Pronto Adicional ($)">
+                <InputGroup label="Pronto Adicional ($)" isDarkMode={isDarkMode}>
                   <input 
                     type="number"
                     value={inputs.manualPronto}
                     onChange={(e) => updateInput('manualPronto', Number(e.target.value))}
-                    className="w-full bg-transparent text-sm font-bold outline-none"
+                    className={`w-full bg-transparent text-sm font-bold outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}
                     placeholder="0.00"
                   />
                 </InputGroup>
@@ -387,6 +411,7 @@ export default function App() {
                     { value: 'Gerencial (15%)', label: 'Gerencial (15%)', group: 'Admin/Operaciones' },
                     { value: 'Ejecutivo (20%)', label: 'Ejecutivo (20%)', group: 'Admin/Operaciones' }
                   ]}
+                  isDarkMode={isDarkMode}
                 />
 
                 {/* Oriental Special Discount Section */}
@@ -396,16 +421,16 @@ export default function App() {
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      className="space-y-4 pt-4 border-t border-blue-100 overflow-hidden"
+                      className={`space-y-4 pt-4 border-t ${isDarkMode ? 'border-slate-800' : 'border-blue-100'} overflow-hidden`}
                     >
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-lg border border-amber-100/50 shadow-sm">
-                        <h3 className="text-[10px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2">
+                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 ${isDarkMode ? 'bg-amber-900/30 border-amber-800' : 'bg-amber-50 border-amber-100/50'} rounded-lg border shadow-sm`}>
+                        <h3 className={`text-[10px] font-black ${isDarkMode ? 'text-amber-400' : 'text-amber-700'} uppercase tracking-widest flex items-center gap-2`}>
                           <Zap className="w-3.5 h-3.5" />
                           OFERTA ESPECIAL ORIENTAL ⚡
                         </h3>
                       </div>
-                      <div className="bg-amber-50/50 p-3 rounded-xl border border-amber-200 space-y-3">
-                        <p className="text-[10px] font-bold text-amber-800 uppercase tracking-tight">
+                      <div className={`${isDarkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-amber-50/50 border-amber-200'} p-3 rounded-xl border space-y-3`}>
+                        <p className={`text-[10px] font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-800'} uppercase tracking-tight`}>
                           Sistema califica para bono de $12,500
                         </p>
                         <div className="flex flex-col gap-2">
@@ -417,7 +442,7 @@ export default function App() {
                               onChange={() => updateInput('applyOrientalSpecialDiscount', true)}
                               className="w-4 h-4 accent-amber-600"
                             />
-                            <span className="text-xs font-bold text-slate-700 group-hover:text-amber-700 transition-colors">Incluir Descuento ($12,500)</span>
+                            <span className={`text-xs font-bold ${isDarkMode ? 'text-slate-300 group-hover:text-amber-400' : 'text-slate-700 group-hover:text-amber-700'} transition-colors`}>Incluir Descuento ($12,500)</span>
                           </label>
                           <label className="flex items-center gap-2 cursor-pointer group">
                             <input 
@@ -427,7 +452,7 @@ export default function App() {
                               onChange={() => updateInput('applyOrientalSpecialDiscount', false)}
                               className="w-4 h-4 accent-slate-400"
                             />
-                            <span className="text-xs font-bold text-slate-700 group-hover:text-slate-900 transition-colors">No Incluir</span>
+                            <span className={`text-xs font-bold ${isDarkMode ? 'text-slate-300 group-hover:text-slate-100' : 'text-slate-700 group-hover:text-slate-900'} transition-colors`}>No incluir</span>
                           </label>
                         </div>
                       </div>
@@ -443,18 +468,21 @@ export default function App() {
                   icon={<Percent className="w-4 h-4" />}
                   active={inputs.vipDiscount} 
                   onClick={() => updateInput('vipDiscount', !inputs.vipDiscount)} 
+                  isDarkMode={isDarkMode}
                 />
                 <Toggle 
                   label="Cliente existente de solar" 
                   icon={<Sun className="w-4 h-4" />}
                   active={inputs.existingSolarCustomer} 
                   onClick={() => updateInput('existingSolarCustomer', !inputs.existingSolarCustomer)} 
+                  isDarkMode={isDarkMode}
                 />
                 <Toggle 
                   label="Pago Cash Roofing" 
                   icon={<DollarSign className="w-4 h-4" />}
                   active={inputs.roofCashDiscount} 
                   onClick={() => updateInput('roofCashDiscount', !inputs.roofCashDiscount)} 
+                  isDarkMode={isDarkMode}
                 />
                 </div>
             </div>
@@ -471,15 +499,15 @@ export default function App() {
           className="lg:col-span-8 space-y-6"
         >
           {/* Compliance Check Bar - NOW AT THE TOP */}
-          <section className="bg-white/90 backdrop-blur-md rounded-3xl border border-slate-200 p-4 shadow-xl shadow-blue-900/5">
+          <section className={`${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-white/20'} backdrop-blur-md rounded-3xl border shadow-2xl shadow-black/20 p-4 shadow-xl shadow-blue-900/5`}>
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
               <div className="space-y-1">
-                <div className="inline-flex items-center gap-2 px-2 py-0.5 bg-slate-100 rounded-md border border-slate-200">
-                  <h2 className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-500">VERIFICACIÓN ✅</h2>
+                <div className={`inline-flex items-center gap-2 px-2 py-0.5 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'} rounded-md border`}>
+                  <h2 className={`text-[8px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>VERIFICACIÓN ✅</h2>
                 </div>
-                <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Viabilidad del Proyecto</h3>
+                <h3 className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-slate-900'} uppercase tracking-tight`}>Viabilidad del Proyecto</h3>
               </div>
-              <div className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-center shadow-sm border ${results.conditionOk ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
+              <div className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-center shadow-sm border ${results.conditionOk ? (isDarkMode ? 'bg-emerald-900/20 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-600 border-emerald-200') : (isDarkMode ? 'bg-red-900/20 text-red-400 border-red-800' : 'bg-red-50 text-red-600 border-red-200')}`}>
                 {results.conditionOk ? '✅ VIABLE' : '❌ NO ELEGIBLE'}
               </div>
             </div>
@@ -492,11 +520,11 @@ export default function App() {
                 </div>
                 <div className="flex flex-col items-end gap-0.5">
                   <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Límite</span>
-                  <span className="text-base font-black text-slate-600">{formatPercent(results.roofLimit)}</span>
+                  <span className={`text-base font-black ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{formatPercent(results.roofLimit)}</span>
                 </div>
               </div>
               
-              <div className="h-3 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200 shadow-inner">
+              <div className={`h-3 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'} rounded-full overflow-hidden p-0.5 border shadow-inner`}>
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.min(results.roofShare / results.roofLimit * 100, 100)}%` }}
@@ -514,13 +542,13 @@ export default function App() {
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2.5 shadow-sm"
+                  className={`p-3 ${isDarkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-amber-50 border-amber-200'} rounded-lg flex items-start gap-2.5 shadow-sm`}
                 >
                   <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-[9px] font-black text-amber-900 uppercase tracking-widest">Solución: Pronto Sugerido</p>
-                    <p className="text-[11px] text-amber-800 mt-0.5 font-medium leading-tight">
-                      Para elegibilidad, aportar pronto de <span className="font-black text-amber-900">{formatCurrency(results.requiredProntoForCompliance)}</span>.
+                    <p className={`text-[9px] font-black ${isDarkMode ? 'text-amber-400' : 'text-amber-900'} uppercase tracking-widest`}>Solución: Pronto Sugerido</p>
+                    <p className={`text-[11px] ${isDarkMode ? 'text-amber-300' : 'text-amber-800'} mt-0.5 font-medium leading-tight`}>
+                      Para elegibilidad, aportar pronto de <span className={`font-black ${isDarkMode ? 'text-amber-200' : 'text-amber-900'}`}>{formatCurrency(results.requiredProntoForCompliance)}</span>.
                     </p>
                     <button 
                       onClick={() => updateInput('manualPronto', Math.ceil(results.requiredProntoForCompliance))}
@@ -535,12 +563,12 @@ export default function App() {
           </section>
 
           {/* Payments - Moved here and boxed */}
-          <section className="bg-white/90 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl shadow-black/20 overflow-hidden">
-            <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-100/50 shadow-sm">
-                <h2 className="text-[10px] font-black text-blue-700 uppercase tracking-widest">PAGOS MENSUALES 💳</h2>
+          <section className={`${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-white/20'} backdrop-blur-md rounded-3xl border shadow-2xl shadow-black/20 overflow-hidden`}>
+            <div className={`p-3 border-b ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'} flex items-center justify-between`}>
+              <div className={`inline-flex items-center gap-2 px-3 py-1.5 ${isDarkMode ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-100/50'} rounded-lg border shadow-sm`}>
+                <h2 className={`text-[10px] font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-700'} uppercase tracking-widest`}>PAGOS MENSUALES 💳</h2>
               </div>
-              <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              <div className={`text-[9px] font-black ${isDarkMode ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest`}>
                 Financiamiento: <span className="text-blue-600">{inputs.financing === 'WH' ? 'WH Financial' : 'Oriental Bank'}</span>
               </div>
             </div>
@@ -556,12 +584,12 @@ export default function App() {
                       whileHover={{ scale: 1.05, y: -5 }}
                       whileTap={{ scale: 0.95 }}
                       transition={{ delay: idx * 0.03 }}
-                      className="bg-white hover:bg-blue-600 border border-slate-100 hover:border-blue-500 rounded-xl p-3 transition-all duration-300 cursor-pointer shadow-[0_2px_8px_rgba(37,99,235,0.06)] hover:shadow-blue-400/20 group relative overflow-hidden"
+                      className={`${isDarkMode ? 'bg-slate-900 hover:bg-blue-900/40 border-slate-800 hover:border-blue-800' : 'bg-white hover:bg-blue-600 border-slate-100 hover:border-blue-500'} rounded-xl p-3 transition-all duration-300 cursor-pointer shadow-[0_2px_8px_rgba(37,99,235,0.06)] hover:shadow-blue-400/20 group relative overflow-hidden`}
                     >
                       <div className="relative z-10 space-y-2">
                         <div className="flex items-center justify-between">
-                          <div className="w-7 h-7 bg-blue-50 group-hover:bg-white/20 rounded-lg flex items-center justify-center">
-                            <span className="text-[10px] font-black text-blue-700 group-hover:text-white">{pay.years}</span>
+                          <div className={`w-7 h-7 ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50'} group-hover:bg-white/20 rounded-lg flex items-center justify-center`}>
+                            <span className={`text-[10px] font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-700'} group-hover:text-white`}>{pay.years}</span>
                           </div>
                           <p className="text-[9px] font-black text-slate-300 group-hover:text-blue-200 uppercase tracking-widest">Años</p>
                         </div>
@@ -569,11 +597,11 @@ export default function App() {
                         <div>
                           <p className="text-[9px] font-black text-slate-400 group-hover:text-blue-200 uppercase tracking-widest mb-0.5">{pay.label || 'Estándar'}</p>
                           <div className="flex flex-col">
-                            <p className="text-lg font-black text-slate-900 group-hover:text-white tracking-tighter leading-tight">
+                            <p className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-slate-900'} group-hover:text-white tracking-tighter leading-tight`}>
                               {formatCurrency(pay.amount)}
                             </p>
                             {pay.maxAmount && (
-                              <p className="text-lg font-black text-slate-900 group-hover:text-white tracking-tighter leading-tight">
+                              <p className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-slate-900'} group-hover:text-white tracking-tighter leading-tight`}>
                                 {formatCurrency(pay.maxAmount)}
                               </p>
                             )}
@@ -581,9 +609,9 @@ export default function App() {
                           <p className="text-[10px] font-medium text-slate-400 group-hover:text-blue-100">Pago Mensual</p>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-50 group-hover:border-white/10 flex justify-between items-center">
+                        <div className={`pt-2 border-t ${isDarkMode ? 'border-slate-800' : 'border-slate-50'} group-hover:border-white/10 flex justify-between items-center`}>
                           <span className="text-[9px] font-black text-slate-300 group-hover:text-blue-300 uppercase">APR</span>
-                          <span className="text-[11px] font-black text-blue-600 group-hover:text-white">
+                          <span className={`text-[11px] font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-600'} group-hover:text-white`}>
                             {pay.maxRate ? `${(pay.rate * 100).toFixed(2)}% - ${(pay.maxRate * 100).toFixed(2)}%` : `${(pay.rate * 100).toFixed(2)}%`}
                           </span>
                         </div>
@@ -599,27 +627,27 @@ export default function App() {
           <div className="flex flex-col gap-6">
             
             {/* Breakdown */}
-            <section className="bg-white/90 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl shadow-black/20 overflow-hidden">
-              <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-100/50 shadow-sm">
-                  <h2 className="text-[10px] font-black text-blue-700 uppercase tracking-widest">RESUMEN TOTAL DEL PROYECTO 📋</h2>
+            <section className={`${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-white/20'} backdrop-blur-md rounded-3xl border shadow-2xl shadow-black/20 overflow-hidden`}>
+              <div className={`p-3 border-b ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'} flex items-center justify-between`}>
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 ${isDarkMode ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-100/50'} rounded-lg border shadow-sm`}>
+                  <h2 className={`text-[10px] font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-700'} uppercase tracking-widest`}>RESUMEN TOTAL DEL PROYECTO 📋</h2>
                 </div>
-                <FileText className="w-5 h-5 text-slate-400" />
+                <FileText className={`w-5 h-5 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`} />
               </div>
               
               <div className="p-4">
                 <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 items-center">
-                  <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest pb-1 border-b border-slate-100">Concepto</div>
-                  <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest pb-1 border-b border-slate-100 text-right">Precio</div>
+                  <div className={`text-[8px] font-black ${isDarkMode ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-widest pb-1 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>Concepto</div>
+                  <div className={`text-[8px] font-black ${isDarkMode ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-widest pb-1 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-100'} text-right`}>Precio</div>
 
                   {/* Roofing Items */}
-                  <span className="text-[11px] text-slate-600">🏠 Valor Base Roofing</span>
-                  <span className="text-[11px] font-bold text-slate-800 text-right">{formatCurrency(results.roofBaseValue)}</span>
+                  <span className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>🏠 Valor Base Roofing</span>
+                  <span className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-right`}>{formatCurrency(results.roofBaseValue)}</span>
                   
                   {results.roofRemovalValue > 0 && (
                     <>
-                      <span className="text-[11px] text-slate-600">🧹 Remoción de Sellado</span>
-                      <span className="text-[11px] font-bold text-slate-800 text-right">{formatCurrency(results.roofRemovalValue)}</span>
+                      <span className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>🧹 Remoción de Sellado</span>
+                      <span className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-right`}>{formatCurrency(results.roofRemovalValue)}</span>
                     </>
                   )}
 
@@ -631,7 +659,7 @@ export default function App() {
                   )}
                   
                   <span className="text-[11px] text-slate-500">📄 IVU (Exento - Proy. Completo)</span>
-                  <span className="text-[11px] font-bold text-slate-800 text-right">{formatCurrency(results.roofIvu)}</span>
+                  <span className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-right`}>{formatCurrency(results.roofIvu)}</span>
                   
                   {inputs.existingSolarCustomer && (
                     <>
@@ -641,20 +669,20 @@ export default function App() {
                   )}
 
                   {/* Energy Items */}
-                  <div className="col-span-2 my-0.5 border-t border-slate-100" />
+                  <div className={`col-span-2 my-0.5 border-t ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`} />
                   
-                  <span className="text-[11px] text-slate-600">☀️ Placas Solares ({(results.systemSize / 1000).toFixed(2)} kW)</span>
-                  <span className="text-[11px] font-bold text-slate-800 text-right">{formatCurrency(results.solarValue)}</span>
+                  <span className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>☀️ Placas Solares ({(results.systemSize / 1000).toFixed(2)} kW)</span>
+                  <span className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-right`}>{formatCurrency(results.solarValue)}</span>
                   
                   {results.batteryValue > 0 && (
                     <>
-                      <span className="text-[11px] text-slate-600">🔋 Baterías de Respaldo</span>
-                      <span className="text-[11px] font-bold text-slate-800 text-right">{formatCurrency(results.batteryValue)}</span>
+                      <span className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>🔋 Baterías de Respaldo</span>
+                      <span className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-right`}>{formatCurrency(results.batteryValue)}</span>
                     </>
                   )}
                   
-                  <span className="text-[11px] text-slate-600">🛡️ Garantías Extendidas</span>
-                  <span className="text-[11px] font-bold text-slate-800 text-right">{formatCurrency(results.solarWarrantyValue + results.batteryWarrantyValue)}</span>
+                  <span className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>🛡️ Garantías Extendidas</span>
+                  <span className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-right`}>{formatCurrency(results.solarWarrantyValue + results.batteryWarrantyValue)}</span>
 
                   {inputs.vipDiscount && (
                     <>
@@ -671,22 +699,22 @@ export default function App() {
                   )}
 
                   {/* Totals Section */}
-                  <div className="col-span-2 mt-2 pt-2 border-t-2 border-slate-100 space-y-1">
+                  <div className={`col-span-2 mt-2 pt-2 border-t-2 ${isDarkMode ? 'border-slate-800' : 'border-slate-100'} space-y-1`}>
                     <div className="flex justify-between items-center">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">VALOR CASH TOTAL 💎</span>
-                      <span className="text-xs font-black text-slate-900">{formatCurrency(results.cashValue)}</span>
+                      <span className={`text-[9px] font-black ${isDarkMode ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest`}>VALOR CASH TOTAL 💎</span>
+                      <span className={`text-xs font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{formatCurrency(results.cashValue)}</span>
                     </div>
 
                     {inputs.manualPronto > 0 && (
                       <div className="flex justify-between items-center">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PRONTO APORTADO 💵</span>
+                        <span className={`text-[9px] font-black ${isDarkMode ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest`}>PRONTO APORTADO 💵</span>
                         <span className="text-xs font-black text-slate-500">-{formatCurrency(inputs.manualPronto)}</span>
                       </div>
                     )}
 
-                    <div className="mt-1 pt-2 border-t border-blue-100 flex items-center justify-between">
-                      <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">BALANCE A FINANCIAR 💳</span>
-                      <span className="text-sm font-black text-blue-700">{formatCurrency(results.valorFinanciado)}</span>
+                    <div className={`mt-1 pt-2 border-t ${isDarkMode ? 'border-blue-900/50' : 'border-blue-100'} flex items-center justify-between`}>
+                      <span className={`text-[10px] font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-700'} uppercase tracking-widest`}>BALANCE A FINANCIAR 💳</span>
+                      <span className={`text-sm font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>{formatCurrency(results.valorFinanciado)}</span>
                     </div>
                   </div>
                 </div>
@@ -697,9 +725,9 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="max-w-[1600px] mx-auto px-6 py-6 border-t border-slate-200 mt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-slate-400 text-[11px]">
+      <footer className={`max-w-[1600px] mx-auto px-6 py-6 border-t ${isDarkMode ? 'border-slate-800' : 'border-slate-200'} mt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-slate-400 text-[11px]`}>
         <div className="flex items-center gap-4">
-          <img src={LOGO_URL} alt="Windmar Home" className="h-5 grayscale opacity-50" referrerPolicy="no-referrer" />
+          <img src={LOGO_URL} alt="Windmar Home" className={`h-5 grayscale opacity-50 ${isDarkMode ? 'invert' : ''}`} referrerPolicy="no-referrer" />
           <p>© 2026 Windmar Home Support. Todos los derechos reservados.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -712,33 +740,33 @@ export default function App() {
   );
 }
 
-function SmallToggle({ label, subtext, active, onClick }: { label: string, subtext: string, active: boolean, onClick: () => void }) {
+function SmallToggle({ label, subtext, active, onClick, isDarkMode }: { label: string, subtext: string, active: boolean, onClick: () => void, isDarkMode: boolean }) {
   return (
     <div className="flex flex-col gap-0.5 mt-1 ml-1">
       <button 
         onClick={onClick}
         className="flex items-center gap-2 group cursor-pointer"
       >
-        <div className={`w-6 h-3 rounded-full relative transition-colors ${active ? 'bg-blue-600' : 'bg-slate-200'}`}>
+        <div className={`w-6 h-3 rounded-full relative transition-colors ${active ? 'bg-blue-600' : (isDarkMode ? 'bg-slate-800' : 'bg-slate-200')}`}>
           <motion.div 
             animate={{ x: active ? 12 : 2 }}
             className="absolute top-0.5 w-2 h-2 bg-white rounded-full shadow-sm"
           />
         </div>
-        <span className="text-[8px] font-black uppercase tracking-wider text-slate-500 group-hover:text-slate-700 transition-colors">{label}</span>
+        <span className={`text-[8px] font-black uppercase tracking-wider ${isDarkMode ? 'text-slate-500 group-hover:text-slate-300' : 'text-slate-500 group-hover:text-slate-700'} transition-colors`}>{label}</span>
       </button>
-      <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tight ml-8 leading-none">{subtext}</p>
+      <p className={`text-[7px] font-bold ${isDarkMode ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-tight ml-8 leading-none`}>{subtext}</p>
     </div>
   );
 }
 
-function InputGroup({ label, children }: { label: string, children: React.ReactNode }) {
+function InputGroup({ label, children, isDarkMode }: { label: string, children: React.ReactNode, isDarkMode: boolean }) {
   return (
     <div className="space-y-1">
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
       <motion.div 
         whileHover={{ scale: 1.01 }}
-        className="bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500/10 focus-within:border-blue-500 transition-all"
+        className={`${isDarkMode ? 'bg-slate-950 border-slate-800 focus-within:border-blue-500' : 'bg-white border-slate-200 focus-within:border-blue-500'} border rounded-xl px-3 py-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500/10 transition-all`}
       >
         {children}
       </motion.div>
@@ -746,11 +774,12 @@ function InputGroup({ label, children }: { label: string, children: React.ReactN
   );
 }
 
-function ModernSelect({ label, value, onChange, options }: { 
+function ModernSelect({ label, value, onChange, options, isDarkMode }: { 
   label: string, 
   value: any, 
   onChange: (val: any) => void, 
-  options: { value: any, label: string, group?: string }[] 
+  options: { value: any, label: string, group?: string }[],
+  isDarkMode: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -777,9 +806,9 @@ function ModernSelect({ label, value, onChange, options }: {
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full bg-white border ${isOpen ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-slate-200'} rounded-2xl pl-4 pr-10 py-2.5 text-sm font-bold text-left outline-none cursor-pointer transition-all shadow-sm flex items-center justify-between group`}
+          className={`w-full ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'} border ${isOpen ? 'border-blue-500 ring-4 ring-blue-500/10' : ''} rounded-2xl pl-4 pr-10 py-2.5 text-sm font-bold text-left outline-none cursor-pointer transition-all shadow-sm flex items-center justify-between group`}
         >
-          <span className="truncate text-slate-700">{selectedOption?.label || 'Seleccionar...'}</span>
+          <span className={`truncate ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{selectedOption?.label || 'Seleccionar...'}</span>
           <ChevronRight className={`w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-all duration-300 ${isOpen ? '-rotate-90' : 'rotate-90'}`} />
         </motion.button>
 
@@ -789,7 +818,7 @@ function ModernSelect({ label, value, onChange, options }: {
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className="absolute z-[100] w-full mt-2 bg-white/95 backdrop-blur-xl border border-slate-100 rounded-2xl shadow-2xl shadow-blue-900/10 overflow-hidden py-2 max-h-[300px] overflow-y-auto"
+              className={`absolute z-[100] w-full mt-2 ${isDarkMode ? 'bg-slate-900/95 border-slate-800 shadow-black' : 'bg-white/95 border-slate-100 shadow-blue-900/10'} backdrop-blur-xl border rounded-2xl shadow-2xl overflow-hidden py-2 max-h-[300px] overflow-y-auto`}
             >
               {options.filter(o => !o.group).map((opt, idx) => (
                 <button
@@ -798,7 +827,7 @@ function ModernSelect({ label, value, onChange, options }: {
                     onChange(opt.value);
                     setIsOpen(false);
                   }}
-                  className={`w-full px-4 py-2 text-left text-xs font-bold transition-colors ${value === opt.value ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'}`}
+                  className={`w-full px-4 py-2 text-left text-xs font-bold transition-colors ${value === opt.value ? (isDarkMode ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-50 text-blue-700') : (isDarkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-blue-400' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600')}`}
                 >
                   {opt.label}
                 </button>
@@ -806,7 +835,7 @@ function ModernSelect({ label, value, onChange, options }: {
 
               {groups.map(group => (
                 <div key={group} className="mt-2">
-                  <div className="px-4 py-1 text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50">{group}</div>
+                  <div className={`px-4 py-1 text-[9px] font-black ${isDarkMode ? 'text-slate-600 bg-slate-800/30' : 'text-slate-400 bg-slate-50/50'} uppercase tracking-widest`}>{group}</div>
                   {options.filter(o => o.group === group).map((opt, idx) => (
                     <button
                       key={`${opt.value}-${idx}`}
@@ -814,7 +843,7 @@ function ModernSelect({ label, value, onChange, options }: {
                         onChange(opt.value);
                         setIsOpen(false);
                       }}
-                      className={`w-full px-6 py-2 text-left text-xs font-bold transition-colors ${value === opt.value ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'}`}
+                      className={`w-full px-6 py-2 text-left text-xs font-bold transition-colors ${value === opt.value ? (isDarkMode ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-50 text-blue-700') : (isDarkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-blue-400' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600')}`}
                     >
                       {opt.label}
                     </button>
@@ -829,7 +858,7 @@ function ModernSelect({ label, value, onChange, options }: {
   );
 }
 
-function SelectGroup({ label, value, onChange, children }: { label: string, value: any, onChange: (val: any) => void, children: React.ReactNode }) {
+function SelectGroup({ label, value, onChange, children, isDarkMode }: { label: string, value: any, onChange: (val: any) => void, children: React.ReactNode, isDarkMode: boolean }) {
   return (
     <div className="space-y-1">
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
@@ -840,7 +869,7 @@ function SelectGroup({ label, value, onChange, children }: { label: string, valu
         <select 
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-white border border-slate-200 rounded-xl pl-3 pr-10 py-2 text-sm font-bold outline-none cursor-pointer appearance-none group-hover:border-blue-400 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
+          className={`w-full ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-900'} border rounded-xl pl-3 pr-10 py-2 text-sm font-bold outline-none cursor-pointer appearance-none group-hover:border-blue-400 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm`}
         >
           {children}
         </select>
@@ -852,59 +881,59 @@ function SelectGroup({ label, value, onChange, children }: { label: string, valu
   );
 }
 
-function Toggle({ label, icon, active, onClick }: { label: string, icon: React.ReactNode, active: boolean, onClick: () => void }) {
+function Toggle({ label, icon, active, onClick, isDarkMode }: { label: string, icon: React.ReactNode, active: boolean, onClick: () => void, isDarkMode: boolean }) {
   return (
     <motion.button 
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
       onClick={onClick}
-      className={`w-full flex items-center justify-between p-2 rounded-xl border transition-all ${active ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 shadow-sm'}`}
+      className={`w-full flex items-center justify-between p-2 rounded-xl border transition-all ${active ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-blue-600 border-blue-600 text-white shadow-sm') : (isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 shadow-sm')}`}
     >
       <div className="flex items-center gap-2.5">
-        <div className={`p-1 rounded-lg ${active ? 'bg-white/10' : 'bg-slate-50'}`}>
+        <div className={`p-1 rounded-lg ${active ? 'bg-white/10' : (isDarkMode ? 'bg-slate-900' : 'bg-slate-50')}`}>
           {React.cloneElement(icon as React.ReactElement, { className: 'w-3.5 h-3.5' })}
         </div>
         <span className="text-[10px] font-black uppercase tracking-wider">{label}</span>
       </div>
-      <div className={`w-7 h-3.5 rounded-full relative transition-colors ${active ? 'bg-white/20' : 'bg-slate-100'}`}>
+      <div className={`w-7 h-3.5 rounded-full relative transition-colors ${active ? 'bg-white/20' : (isDarkMode ? 'bg-slate-800' : 'bg-slate-100')}`}>
         <div className={`absolute top-0.5 w-2.5 h-2.5 bg-white rounded-full transition-transform ${active ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
       </div>
     </motion.button>
   );
 }
 
-function StatCard({ label, value, subtext, icon, color }: { label: string, value: string, subtext: string, icon: React.ReactNode, color: 'blue' | 'emerald' | 'gray' }) {
+function StatCard({ label, value, subtext, icon, color, isDarkMode }: { label: string, value: string, subtext: string, icon: React.ReactNode, color: 'blue' | 'emerald' | 'gray', isDarkMode: boolean }) {
   const colors = {
-    blue: 'bg-white border-slate-200 text-slate-900 hover:border-blue-200',
+    blue: isDarkMode ? 'bg-slate-900 border-slate-800 text-white hover:border-blue-900' : 'bg-white border-slate-200 text-slate-900 hover:border-blue-200',
     emerald: 'bg-emerald-600 border-emerald-600 text-white',
-    gray: 'bg-white/90 border-slate-200 text-slate-900 hover:border-slate-300'
+    gray: isDarkMode ? 'bg-slate-900/90 border-slate-800 text-white hover:border-slate-700' : 'bg-white/90 border-slate-200 text-slate-900 hover:border-slate-300'
   };
 
   return (
     <motion.div 
       whileHover={{ scale: 1.05, y: -5 }}
-      className={`${colors[color]} border rounded-3xl p-6 shadow-xl shadow-slate-200/40 flex flex-col justify-between min-h-[160px] cursor-default transition-all`}
+      className={`${colors[color]} border rounded-3xl p-6 shadow-xl ${isDarkMode ? 'shadow-black/40' : 'shadow-slate-200/40'} flex flex-col justify-between min-h-[160px] cursor-default transition-all`}
     >
       <div className="flex items-center justify-between">
-        <div className={`p-2.5 rounded-xl ${color === 'blue' ? 'bg-blue-50 text-blue-600' : color === 'gray' ? 'bg-slate-100 text-slate-600 shadow-sm' : 'bg-white/10 text-white'}`}>
+        <div className={`p-2.5 rounded-xl ${color === 'blue' ? (isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-600') : color === 'gray' ? (isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600 shadow-sm') : 'bg-white/10 text-white'}`}>
           {icon}
         </div>
         <ChevronRight className="w-4 h-4 opacity-20" />
       </div>
       <div>
-        <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${color === 'blue' ? 'text-slate-400' : color === 'gray' ? 'text-slate-400' : 'text-emerald-100'}`}>{label}</p>
-        <p className="text-2xl font-black tracking-tight text-slate-900">{value}</p>
-        <p className={`text-[10px] font-bold mt-1 ${color === 'blue' ? 'text-slate-300' : color === 'gray' ? 'text-slate-400/80' : 'text-emerald-200'}`}>{subtext}</p>
+        <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${color === 'blue' ? (isDarkMode ? 'text-slate-500' : 'text-slate-400') : color === 'gray' ? (isDarkMode ? 'text-slate-500' : 'text-slate-400') : 'text-emerald-100'}`}>{label}</p>
+        <p className={`text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{value}</p>
+        <p className={`text-[10px] font-bold mt-1 ${color === 'blue' ? (isDarkMode ? 'text-slate-600' : 'text-slate-300') : color === 'gray' ? (isDarkMode ? 'text-slate-600' : 'text-slate-400/80') : 'text-emerald-200'}`}>{subtext}</p>
       </div>
     </motion.div>
   );
 }
 
-function DataRow({ label, value, highlight, muted }: { label: string, value: string, highlight?: boolean, muted?: boolean }) {
+function DataRow({ label, value, highlight, muted, isDarkMode }: { label: string, value: string, highlight?: boolean, muted?: boolean, isDarkMode: boolean }) {
   return (
     <div className={`grid grid-cols-[1fr_auto] items-center py-0.5 gap-4 ${muted ? 'opacity-30' : ''}`}>
-      <span className="text-xs text-slate-500">{label}</span>
-      <span className={`text-xs font-bold text-right ${highlight ? 'text-blue-600' : 'text-slate-800'}`}>{value}</span>
+      <span className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{label}</span>
+      <span className={`text-xs font-bold text-right ${highlight ? (isDarkMode ? 'text-blue-400' : 'text-blue-600') : (isDarkMode ? 'text-slate-300' : 'text-slate-800')}`}>{value}</span>
     </div>
   );
 }
