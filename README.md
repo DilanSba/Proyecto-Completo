@@ -1,4 +1,4 @@
-# Calculadora Pro Proyecto Completo
+# Proyecto-completo-pro
 
 Cotizador integral de alta precisión para proyectos de Roofing, Solar y Baterías con múltiples opciones de financiamiento. Diseñado específicamente para Windmar Home.
 
