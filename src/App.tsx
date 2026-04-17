@@ -1,14 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Sun, 
-  Battery, 
-  Home, 
-  Calculator, 
-  Percent, 
-  ShieldCheck, 
-  Trash2, 
-  ChevronRight, 
+import {
+  Sun,
+  Battery,
+  Home,
+  Calculator,
+  Percent,
+  ShieldCheck,
+  Trash2,
+  ChevronRight,
   Info,
   DollarSign,
   Zap,
@@ -18,17 +18,27 @@ import {
   FileText,
   ArrowUpRight,
   Phone,
-  Moon
+  Moon,
+  Download,
+  X,
+  User,
+  Mail,
+  MapPin
 } from 'lucide-react';
 import { QuoteInputs } from './types';
 import { calculateQuote } from './utils/calculations';
 import { PANEL_PRICES } from './constants';
+import { generateQuotePDF, ConsultorInfo, ClienteInfo } from './utils/pdfGenerator';
 
 const LOGO_URL = "https://i.postimg.cc/44pJ0vXw/logo.png";
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [consultor, setConsultor] = useState<ConsultorInfo>({ nombre: '', correo: '', telefono: '' });
+  const [cliente, setCliente] = useState<ClienteInfo>({ nombre: '', direccion: '', correo: '', telefono: '' });
   const [inputs, setInputs] = useState<QuoteInputs>({
     roofPlan: 'SILVER',
     roofSqft: 0,
@@ -64,6 +74,15 @@ export default function App() {
 
   const updateInput = (key: keyof QuoteInputs, value: any) => {
     setInputs(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleDownloadPDF = () => {
+    setPdfLoading(true);
+    setTimeout(() => {
+      generateQuotePDF(inputs, results, consultor, cliente);
+      setPdfLoading(false);
+      setShowPdfModal(false);
+    }, 200);
   };
 
   return (
@@ -204,7 +223,6 @@ export default function App() {
       <header className="sticky top-0 z-50 transition-all bg-transparent">
         <div className="max-w-[1600px] mx-auto px-6 pt-4 pb-1 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
-            {/* Logo - Organic Alignment */}
             <motion.div 
               whileHover={{ scale: 1.05 }}
               className="flex items-center justify-center"
@@ -223,7 +241,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Dark Mode Toggle */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -240,7 +257,6 @@ export default function App() {
               </span>
             </motion.button>
 
-            {/* Contact Info (Right Side) */}
             <div className="flex flex-col items-center md:items-end gap-0">
               <div className="flex items-center gap-2 text-[#f59e0b]">
                 <Phone className="w-4 h-4 md:w-5 md:h-5 fill-current" />
@@ -414,7 +430,6 @@ export default function App() {
                   isDarkMode={isDarkMode}
                 />
 
-                {/* Oriental Special Discount Section */}
                 <AnimatePresence>
                   {inputs.financing === 'ORIENTAL' && inputs.panels >= 39 && inputs.batteries >= 3 && (
                     <motion.div 
@@ -487,8 +502,6 @@ export default function App() {
                 </div>
             </div>
           </section>
-
-          {/* Quick Summary REMOVED */}
         </motion.div>
 
         {/* Right Column: Results */}
@@ -498,7 +511,7 @@ export default function App() {
           transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
           className="lg:col-span-8 space-y-6"
         >
-          {/* Compliance Check Bar - NOW AT THE TOP */}
+          {/* Compliance Check Bar */}
           <section className={`${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-white/20'} backdrop-blur-md rounded-3xl border shadow-2xl shadow-black/20 p-4 shadow-xl shadow-blue-900/5`}>
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
               <div className="space-y-1">
@@ -562,7 +575,7 @@ export default function App() {
             </div>
           </section>
 
-          {/* Payments - Moved here and boxed */}
+          {/* Payments */}
           <section className={`${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-white/20'} backdrop-blur-md rounded-3xl border shadow-2xl shadow-black/20 overflow-hidden`}>
             <div className={`p-3 border-b ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'} flex items-center justify-between`}>
               <div className={`inline-flex items-center gap-2 px-3 py-1.5 ${isDarkMode ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-100/50'} rounded-lg border shadow-sm`}>
@@ -625,14 +638,20 @@ export default function App() {
 
           {/* Breakdown */}
           <div className="flex flex-col gap-6">
-            
-            {/* Breakdown */}
             <section className={`${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-white/20'} backdrop-blur-md rounded-3xl border shadow-2xl shadow-black/20 overflow-hidden`}>
               <div className={`p-3 border-b ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'} flex items-center justify-between`}>
                 <div className={`inline-flex items-center gap-2 px-3 py-1.5 ${isDarkMode ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-100/50'} rounded-lg border shadow-sm`}>
                   <h2 className={`text-[10px] font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-700'} uppercase tracking-widest`}>RESUMEN TOTAL DEL PROYECTO 📋</h2>
                 </div>
-                <FileText className={`w-5 h-5 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`} />
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowPdfModal(true)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border ${isDarkMode ? 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white' : 'bg-[#1e3a8a] hover:bg-blue-800 border-blue-900 text-white'}`}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Descargar PDF
+                </motion.button>
               </div>
               
               <div className="p-4">
@@ -640,7 +659,6 @@ export default function App() {
                   <div className={`text-[8px] font-black ${isDarkMode ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-widest pb-1 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>Concepto</div>
                   <div className={`text-[8px] font-black ${isDarkMode ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-widest pb-1 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-100'} text-right`}>Precio</div>
 
-                  {/* Roofing Items */}
                   <span className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>🏠 Valor Base Roofing</span>
                   <span className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-right`}>{formatCurrency(results.roofBaseValue)}</span>
                   
@@ -668,7 +686,6 @@ export default function App() {
                     </>
                   )}
 
-                  {/* Energy Items */}
                   <div className={`col-span-2 my-0.5 border-t ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`} />
                   
                   <span className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>☀️ Placas Solares ({(results.systemSize / 1000).toFixed(2)} kW)</span>
@@ -698,7 +715,6 @@ export default function App() {
                     </>
                   )}
 
-                  {/* Totals Section */}
                   <div className={`col-span-2 mt-2 pt-2 border-t-2 ${isDarkMode ? 'border-slate-800' : 'border-slate-100'} space-y-1`}>
                     <div className="flex justify-between items-center">
                       <span className={`text-[9px] font-black ${isDarkMode ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest`}>VALOR CASH TOTAL 💎</span>
@@ -736,6 +752,182 @@ export default function App() {
         </div>
       </footer>
       </div>
+
+      {/* PDF Modal */}
+      <AnimatePresence>
+        {showPdfModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowPdfModal(false)}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className={`relative w-full max-w-lg rounded-3xl border shadow-2xl overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}
+            >
+              <div className="bg-[#1e3a8a] px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
+                    <Download className="w-4.5 h-4.5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-black text-white uppercase tracking-widest">Descargar Cotización PDF</h2>
+                    <p className="text-[10px] text-blue-200 mt-0.5">Complete la información antes de generar el documento</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPdfModal(false)}
+                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                >
+                  <X className="w-4 h-4 text-white" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                <div className="space-y-3">
+                  <div className={`flex items-center gap-2 pb-2 border-b ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                    <div className={`w-6 h-6 rounded-lg ${isDarkMode ? 'bg-blue-900/40' : 'bg-blue-50'} flex items-center justify-center`}>
+                      <User className="w-3.5 h-3.5 text-blue-600" />
+                    </div>
+                    <h3 className={`text-[11px] font-black uppercase tracking-widest ${isDarkMode ? 'text-blue-400' : 'text-[#1e3a8a]'}`}>Consultor</h3>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    <PdfInputField
+                      label="Nombre completo"
+                      value={consultor.nombre}
+                      onChange={v => setConsultor(p => ({ ...p, nombre: v }))}
+                      placeholder="Ej. Juan García"
+                      isDarkMode={isDarkMode}
+                    />
+                    <PdfInputField
+                      label="Correo electrónico"
+                      value={consultor.correo}
+                      onChange={v => setConsultor(p => ({ ...p, correo: v }))}
+                      placeholder="consultor@windmarhome.com"
+                      type="email"
+                      isDarkMode={isDarkMode}
+                    />
+                    <PdfInputField
+                      label="Teléfono"
+                      value={consultor.telefono}
+                      onChange={v => setConsultor(p => ({ ...p, telefono: v }))}
+                      placeholder="787-000-0000"
+                      type="tel"
+                      isDarkMode={isDarkMode}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className={`flex items-center gap-2 pb-2 border-b ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                    <div className={`w-6 h-6 rounded-lg ${isDarkMode ? 'bg-blue-900/40' : 'bg-blue-50'} flex items-center justify-center`}>
+                      <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                    </div>
+                    <h3 className={`text-[11px] font-black uppercase tracking-widest ${isDarkMode ? 'text-blue-400' : 'text-[#1e3a8a]'}`}>Cliente</h3>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    <PdfInputField
+                      label="Nombre completo"
+                      value={cliente.nombre}
+                      onChange={v => setCliente(p => ({ ...p, nombre: v }))}
+                      placeholder="Ej. María López"
+                      isDarkMode={isDarkMode}
+                    />
+                    <PdfInputField
+                      label="Dirección"
+                      value={cliente.direccion}
+                      onChange={v => setCliente(p => ({ ...p, direccion: v }))}
+                      placeholder="Calle, Ciudad, PR 00000"
+                      isDarkMode={isDarkMode}
+                    />
+                    <PdfInputField
+                      label="Correo electrónico"
+                      value={cliente.correo}
+                      onChange={v => setCliente(p => ({ ...p, correo: v }))}
+                      placeholder="cliente@email.com"
+                      type="email"
+                      isDarkMode={isDarkMode}
+                    />
+                    <PdfInputField
+                      label="Teléfono"
+                      value={cliente.telefono}
+                      onChange={v => setCliente(p => ({ ...p, telefono: v }))}
+                      placeholder="787-000-0000"
+                      type="tel"
+                      isDarkMode={isDarkMode}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className={`px-6 py-4 border-t ${isDarkMode ? 'border-slate-700 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'} flex items-center justify-between gap-3`}>
+                <button
+                  onClick={() => setShowPdfModal(false)}
+                  className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all border ${isDarkMode ? 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-500' : 'border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+                >
+                  Cancelar
+                </button>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleDownloadPDF}
+                  disabled={pdfLoading || !consultor.nombre || !cliente.nombre}
+                  className="flex items-center gap-2.5 px-5 py-2 bg-[#1e3a8a] hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-900/30"
+                >
+                  {pdfLoading ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                      className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                    />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  {pdfLoading ? 'Generando...' : 'Generar y Descargar'}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function PdfInputField({ label, value, onChange, placeholder, type = 'text', isDarkMode }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  isDarkMode: boolean;
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`w-full px-3 py-2.5 rounded-xl border text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${
+          isDarkMode
+            ? 'bg-slate-950 border-slate-800 text-white placeholder-slate-600'
+            : 'bg-white border-slate-200 text-slate-900 placeholder-slate-300'
+        }`}
+      />
     </div>
   );
 }
