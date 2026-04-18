@@ -44,8 +44,10 @@ function fmt(v: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
 }
 
-// ── Carga logo, elimina fondo negro y submuestrea a 220x90px ──────────────────
-async function loadLogo(url: string): Promise<string | null> {
+interface LogoData { dataUrl: string; aspectRatio: number; }
+
+// ── Carga logo, elimina fondo negro, submuestrea y devuelve aspect ratio real ─
+async function loadLogo(url: string): Promise<LogoData | null> {
   try {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -54,6 +56,8 @@ async function loadLogo(url: string): Promise<string | null> {
       img.onerror = () => rej();
       img.src = url;
     });
+
+    const aspectRatio = img.width / img.height;
 
     // Eliminar píxeles negros/muy oscuros
     const canvas = document.createElement('canvas');
@@ -67,17 +71,17 @@ async function loadLogo(url: string): Promise<string | null> {
     }
     ctx.putImageData(d, 0, 0);
 
-    // Submuestrear a 220×90px máx para calidad óptima en PDF (2× del tamaño destino 110×45pt)
-    const MAX_W = 220, MAX_H = 90;
+    // Submuestrear a 320×160px máx para buena calidad sin sobre-peso
+    const MAX_W = 320, MAX_H = 160;
     const ratio = Math.min(MAX_W / canvas.width, MAX_H / canvas.height, 1);
     if (ratio < 1) {
       const out = document.createElement('canvas');
       out.width  = Math.round(canvas.width  * ratio);
       out.height = Math.round(canvas.height * ratio);
       out.getContext('2d')!.drawImage(canvas, 0, 0, out.width, out.height);
-      return out.toDataURL('image/png');
+      return { dataUrl: out.toDataURL('image/png'), aspectRatio };
     }
-    return canvas.toDataURL('image/png');
+    return { dataUrl: canvas.toDataURL('image/png'), aspectRatio };
   } catch { return null; }
 }
 
@@ -97,7 +101,7 @@ export async function generateQuotePDF(
   const CW  = PW - M * 2;
   const date = new Date().toLocaleDateString('es-PR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  const logoURL = await loadLogo('https://i.postimg.cc/RF76rLv3/logo.png');
+  const logoData = await loadLogo('https://i.postimg.cc/RF76rLv3/logo.png');
 
   // ── Fondo completo ───────────────────────────────────────────────────────
   doc.setFillColor(...T.pageBg);
@@ -107,9 +111,14 @@ export async function generateQuotePDF(
   doc.setFillColor(...ORANGE);
   doc.rect(0, 0, PW, 2.2, 'F');
 
-  // ── Logo — alineado a la izquierda, ~38mm × 16mm ─────────────────────────
-  if (logoURL) {
-    doc.addImage(logoURL, 'PNG', M, 3.5, 38, 16);
+  // ── Logo — tamaño calculado por aspect ratio, centrado en el header ──────
+  if (logoData) {
+    // Área del header: y=2.2mm (barra naranja) a y=24.5mm (separador) = 22.3mm
+    // Altura máx del logo: 16mm. Ancho calculado por aspect ratio, máx 60mm.
+    const logoH = Math.min(16, 22.3 * 0.72);          // 72% del área del header
+    const logoW = Math.min(60, logoH * logoData.aspectRatio);
+    const logoY = 2.2 + (22.3 - logoH) / 2;           // centrado vertical en el header
+    doc.addImage(logoData.dataUrl, 'PNG', M, logoY, logoW, logoH);
   } else {
     doc.setTextColor(...WHITE);
     doc.setFontSize(14);
