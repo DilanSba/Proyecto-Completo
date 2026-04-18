@@ -97,7 +97,7 @@ export async function generateQuotePDF(
   const CW  = PW - M * 2;
   const date = new Date().toLocaleDateString('es-PR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  const logoURL = await loadLogo('https://i.postimg.cc/rpm1cW7z/ChatGPT-Image-Apr-18-2026-09-17-00-AM.png');
+  const logoURL = await loadLogo('https://i.postimg.cc/RF76rLv3/logo.png');
 
   // ── Fondo completo ───────────────────────────────────────────────────────
   doc.setFillColor(...T.pageBg);
@@ -290,7 +290,8 @@ export async function generateQuotePDF(
   const leftExtra = (hasPronte ? 9 : 0);
   const leftH = HDR + pRows.length * DR + 2 + 9 + leftExtra + 9.5;
 
-  const PAY_H  = 6.5;
+  const hasRangePay = results.monthlyPayments.some(p => p.maxAmount);
+  const PAY_H  = hasRangePay ? 10 : 6.5;
   const rightH = HDR + 7 + results.monthlyPayments.length * PAY_H + 12;
   const colH   = Math.max(leftH, rightH);
 
@@ -342,14 +343,24 @@ export async function generateQuotePDF(
 
   results.monthlyPayments.forEach((pay, idx) => {
     if (idx%2===1) { doc.setFillColor(...T.rowAlt); doc.rect(RX, ry, RW, PAY_H, 'F'); }
+    const midY = ry + PAY_H / 2;
     doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...T.textLabel);
-    doc.text(`${pay.years} años`, c1, ry + PAY_H - 1.8);
+    doc.text(`${pay.years} años`, c1, midY + 1.2);
     const aprTxt = pay.maxRate
       ? `${(pay.rate*100).toFixed(1)}-${(pay.maxRate*100).toFixed(1)}%`
       : `${(pay.rate*100).toFixed(2)}%`;
-    doc.text(aprTxt, c2, ry + PAY_H - 1.8);
+    doc.text(aprTxt, c2, midY + 1.2);
     doc.setFont('helvetica', 'bold'); doc.setTextColor(...ORANGE);
-    doc.text(fmt(pay.amount), c3, ry + PAY_H - 1.8);
+    if (pay.maxAmount) {
+      // Mostrar rango Desde / Hasta en dos líneas
+      doc.setFontSize(6.5);
+      doc.text(`Desde: ${fmt(pay.amount)}`,    c3, midY - 1.2);
+      doc.setTextColor(...LBLUE);
+      doc.text(`Hasta: ${fmt(pay.maxAmount)}`, c3, midY + 3.2);
+    } else {
+      doc.setFontSize(7);
+      doc.text(fmt(pay.amount), c3, midY + 1.2);
+    }
     ry += PAY_H;
   });
   ry += 3;
