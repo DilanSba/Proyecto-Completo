@@ -79,7 +79,7 @@ export default function App() {
   const handleDownloadPDF = async () => {
     setPdfLoading(true);
     try {
-      await generateQuotePDF(inputs, results, consultor, cliente);
+      await generateQuotePDF(inputs, results, consultor, cliente, isDarkMode);
     } finally {
       setPdfLoading(false);
       setShowPdfModal(false);

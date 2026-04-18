@@ -5,33 +5,57 @@ import { QuoteInputs, QuoteResults } from '../types';
 export interface ConsultorInfo { nombre: string; correo: string; telefono: string; }
 export interface ClienteInfo   { nombre: string; direccion: string; correo: string; telefono: string; }
 
-// ── Paleta ───────────────────────────────────────────────────────────────────
-const BG:    [number,number,number] = [33,  39,  78 ]; // #21274E
-const ORANGE:[number,number,number] = [248, 155, 36 ]; // #F89B24
-const NAVY:  [number,number,number] = [29,  66,  155]; // #1D429B
-const CARD:  [number,number,number] = [45,  53,  97 ]; // #2D3561
-const RALT:  [number,number,number] = [53,  64,  128]; // #354080
-const LBLUE: [number,number,number] = [166, 195, 230]; // #A6C3E6
-const MGRAY: [number,number,number] = [167, 169, 172]; // #A7A9AC
-const WHITE: [number,number,number] = [255, 255, 255];
-const GREEN: [number,number,number] = [5,   150, 105];
-const RED:   [number,number,number] = [220, 38,  38 ];
-const AMBER: [number,number,number] = [217, 119, 6  ];
+// ── Paleta fija (igual en ambos modos) ───────────────────────────────────────
+const ORANGE: [number,number,number] = [248, 155, 36 ]; // #F89B24
+const NAVY:   [number,number,number] = [29,  66,  155]; // #1D429B
+const LBLUE:  [number,number,number] = [166, 195, 230]; // #A6C3E6
+const MGRAY:  [number,number,number] = [167, 169, 172]; // #A7A9AC
+const WHITE:  [number,number,number] = [255, 255, 255];
+const RED:    [number,number,number] = [220, 38,  38 ];
+const AMBER:  [number,number,number] = [217, 119, 6  ];
+
+// ── Paletas por modo ─────────────────────────────────────────────────────────
+interface Theme {
+  pageBg:      [number,number,number];
+  sectionBg:   [number,number,number];
+  textPrimary: [number,number,number];
+  textLabel:   [number,number,number];
+  rowAlt:      [number,number,number];
+}
+
+function getTheme(dark: boolean): Theme {
+  if (dark) return {
+    pageBg:      [33,  39,  78 ],  // #21274E
+    sectionBg:   [45,  53,  97 ],  // #2D3561
+    textPrimary: [255, 255, 255],  // blanco
+    textLabel:   [167, 169, 172],  // #A7A9AC
+    rowAlt:      [53,  64,  128],  // #354080
+  };
+  return {
+    pageBg:      [244, 246, 250],  // #F4F6FA
+    sectionBg:   [255, 255, 255],  // blanco
+    textPrimary: [35,  31,  32 ],  // #231F20
+    textLabel:   [29,  66,  155],  // #1D429B (azul para labels)
+    rowAlt:      [238, 241, 248],  // #EEF1F8
+  };
+}
 
 function fmt(v: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
 }
 
-// Carga logo y elimina fondo negro por transparencia
+// ── Carga logo, elimina fondo negro y submuestrea a 220x90px ──────────────────
 async function loadLogo(url: string): Promise<string | null> {
   try {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     await new Promise<void>((res, rej) => {
-      img.onload = () => res();
+      img.onload  = () => res();
       img.onerror = () => rej();
       img.src = url;
     });
+
+    // Eliminar píxeles negros/muy oscuros
     const canvas = document.createElement('canvas');
     canvas.width  = img.width;
     canvas.height = img.height;
@@ -42,17 +66,30 @@ async function loadLogo(url: string): Promise<string | null> {
       if (d.data[i] < 60 && d.data[i+1] < 60 && d.data[i+2] < 60) d.data[i+3] = 0;
     }
     ctx.putImageData(d, 0, 0);
+
+    // Submuestrear a 220×90px máx para calidad óptima en PDF (2× del tamaño destino 110×45pt)
+    const MAX_W = 220, MAX_H = 90;
+    const ratio = Math.min(MAX_W / canvas.width, MAX_H / canvas.height, 1);
+    if (ratio < 1) {
+      const out = document.createElement('canvas');
+      out.width  = Math.round(canvas.width  * ratio);
+      out.height = Math.round(canvas.height * ratio);
+      out.getContext('2d')!.drawImage(canvas, 0, 0, out.width, out.height);
+      return out.toDataURL('image/png');
+    }
     return canvas.toDataURL('image/png');
   } catch { return null; }
 }
 
 export async function generateQuotePDF(
-  inputs:    QuoteInputs,
-  results:   QuoteResults,
-  consultor: ConsultorInfo,
-  cliente:   ClienteInfo
+  inputs:     QuoteInputs,
+  results:    QuoteResults,
+  consultor:  ConsultorInfo,
+  cliente:    ClienteInfo,
+  isDarkMode  = false
 ): Promise<void> {
 
+  const T   = getTheme(isDarkMode);
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
   const PW  = doc.internal.pageSize.getWidth();   // 215.9 mm
   const PH  = doc.internal.pageSize.getHeight();  // 279.4 mm
@@ -60,20 +97,19 @@ export async function generateQuotePDF(
   const CW  = PW - M * 2;
   const date = new Date().toLocaleDateString('es-PR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  const logoURL  = await loadLogo('https://i.postimg.cc/rpm1cW7z/ChatGPT-Image-Apr-18-2026-09-17-00-AM.png');
+  const logoURL = await loadLogo('https://i.postimg.cc/rpm1cW7z/ChatGPT-Image-Apr-18-2026-09-17-00-AM.png');
 
   // ── Fondo completo ───────────────────────────────────────────────────────
-  doc.setFillColor(...BG);
+  doc.setFillColor(...T.pageBg);
   doc.rect(0, 0, PW, PH, 'F');
 
-  // ── Barra naranja superior (6px ≈ 2.1mm) ────────────────────────────────
+  // ── Barra naranja superior ───────────────────────────────────────────────
   doc.setFillColor(...ORANGE);
   doc.rect(0, 0, PW, 2.2, 'F');
 
-  // ── Header ───────────────────────────────────────────────────────────────
-  // Logo (izquierda) — 45mm × 15mm
+  // ── Logo — alineado a la izquierda, ~38mm × 16mm ─────────────────────────
   if (logoURL) {
-    doc.addImage(logoURL, 'PNG', M, 4, 45, 15);
+    doc.addImage(logoURL, 'PNG', M, 3.5, 38, 16);
   } else {
     doc.setTextColor(...WHITE);
     doc.setFontSize(14);
@@ -81,21 +117,18 @@ export async function generateQuotePDF(
     doc.text('WINDMAR HOME', M, 14);
   }
 
-  // Info derecha
+  // ── Header derecho ───────────────────────────────────────────────────────
   const rx = PW - M;
-  doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...ORANGE);
+  doc.setFontSize(9);   doc.setFont('helvetica', 'bold');   doc.setTextColor(...ORANGE);
   doc.text('787-395-7766', rx, 9.5, { align: 'right' });
-
-  doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...LBLUE);
+  doc.setFontSize(8);   doc.setFont('helvetica', 'normal'); doc.setTextColor(...LBLUE);
   doc.text('Línea Windmar Home', rx, 14, { align: 'right' });
-
   doc.setFontSize(7.5); doc.setTextColor(...MGRAY);
   doc.text('Roofing · Solar · Baterías de Alta Ingeniería', rx, 17.5, { align: 'right' });
-
-  doc.setFontSize(8); doc.setTextColor(...WHITE);
+  doc.setFontSize(8);   doc.setTextColor(...WHITE);
   doc.text(date, rx, 21.5, { align: 'right' });
 
-  // ── Línea separadora naranja ─────────────────────────────────────────────
+  // ── Separador naranja ────────────────────────────────────────────────────
   let y = 24.5;
   doc.setDrawColor(...ORANGE);
   doc.setLineWidth(0.55);
@@ -103,7 +136,7 @@ export async function generateQuotePDF(
   y += 3;
 
   // ── Título ───────────────────────────────────────────────────────────────
-  doc.setFontSize(17); doc.setFont('helvetica', 'bold'); doc.setTextColor(...WHITE);
+  doc.setFontSize(17); doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textPrimary);
   doc.text('COTIZACIÓN — PROYECTO COMPLETO', M, y + 7);
   y += 9;
   doc.setFontSize(10.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...ORANGE);
@@ -117,12 +150,12 @@ export async function generateQuotePDF(
 
   function cardHdr(x: number, cy: number, w: number, h: number, titleH: number,
                    titleBg: [number,number,number], title: string, border = false): void {
-    doc.setFillColor(...CARD);
+    doc.setFillColor(...T.sectionBg);
     doc.roundedRect(x, cy, w, h, 2, 2, 'F');
     if (border) { doc.setDrawColor(...ORANGE); doc.setLineWidth(0.35); doc.roundedRect(x, cy, w, h, 2, 2, 'S'); }
     doc.setFillColor(...titleBg);
     doc.roundedRect(x, cy, w, titleH, 2, 2, 'F');
-    doc.rect(x, cy + titleH - 2, w, 2, 'F');                // elimina borde inferior redondeado
+    doc.rect(x, cy + titleH - 2, w, 2, 'F');
     if (border) { doc.setDrawColor(...ORANGE); doc.roundedRect(x, cy, w, titleH, 2, 2, 'S'); }
     doc.setTextColor(...WHITE);
     doc.setFontSize(8.5); doc.setFont('helvetica', 'bold');
@@ -131,9 +164,9 @@ export async function generateQuotePDF(
 
   function labelVal(x: number, cy: number, w: number,
                     label: string, value: string, idx: number,
-                    valColor: [number,number,number] = WHITE): void {
-    if (idx % 2 === 1) { doc.setFillColor(...RALT); doc.rect(x, cy, w, DR, 'F'); }
-    doc.setFontSize(7.2); doc.setFont('helvetica', 'bold'); doc.setTextColor(...MGRAY);
+                    valColor: [number,number,number] = T.textPrimary): void {
+    if (idx % 2 === 1) { doc.setFillColor(...T.rowAlt); doc.rect(x, cy, w, DR, 'F'); }
+    doc.setFontSize(7.2); doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textLabel);
     doc.text(label + ':', x + 3, cy + DR - 1.3);
     doc.setFont('helvetica', 'normal'); doc.setTextColor(...valColor);
     doc.text(value, x + w - 3, cy + DR - 1.3, { align: 'right' });
@@ -141,30 +174,24 @@ export async function generateQuotePDF(
 
   // ── Consultor + Cliente ──────────────────────────────────────────────────
   const HALF = (CW - 4) / 2;
-
-  const cRows: [string,string][] = [
-    ['Nombre', consultor.nombre], ['Correo', consultor.correo], ['Teléfono', consultor.telefono],
-  ];
-  const clRows: [string,string][] = [
-    ['Nombre', cliente.nombre], ['Dirección', cliente.direccion],
-    ['Correo', cliente.correo], ['Teléfono', cliente.telefono],
-  ];
+  const cRows:  [string,string][] = [['Nombre', consultor.nombre], ['Correo', consultor.correo], ['Teléfono', consultor.telefono]];
+  const clRows: [string,string][] = [['Nombre', cliente.nombre], ['Dirección', cliente.direccion], ['Correo', cliente.correo], ['Teléfono', cliente.telefono]];
   const maxIC = Math.max(cRows.length, clRows.length);
 
-  cardHdr(M,           y, HALF, HDR + maxIC*RH, HDR, NAVY, 'CONSULTOR');
-  cardHdr(M+HALF+4,    y, HALF, HDR + maxIC*RH, HDR, NAVY, 'CLIENTE');
+  cardHdr(M,        y, HALF, HDR + maxIC*RH, HDR, NAVY, 'CONSULTOR');
+  cardHdr(M+HALF+4, y, HALF, HDR + maxIC*RH, HDR, NAVY, 'CLIENTE');
 
   for (let i = 0; i < maxIC; i++) {
     const ry = y + HDR + i * RH;
     if (i % 2 === 1) {
-      doc.setFillColor(...RALT);
+      doc.setFillColor(...T.rowAlt);
       doc.rect(M,        ry, HALF, RH, 'F');
       doc.rect(M+HALF+4, ry, HALF, RH, 'F');
     }
     const render = (x: number, w: number, lbl: string, val: string) => {
-      doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...MGRAY);
+      doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textLabel);
       doc.text(lbl + ':', x + 3, ry + RH - 1.5);
-      doc.setFont('helvetica', 'normal'); doc.setTextColor(...WHITE);
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(...T.textPrimary);
       doc.text(val || '—', x + w - 3, ry + RH - 1.5, { align: 'right' });
     };
     if (i < cRows.length)  render(M,        HALF, cRows[i][0],  cRows[i][1]);
@@ -188,14 +215,14 @@ export async function generateQuotePDF(
   const mid = M + CW / 2;
   sumRows.forEach(([l1, v1, l2, v2], i) => {
     const ry = y + HDR + i * DR;
-    if (i % 2 === 1) { doc.setFillColor(...RALT); doc.rect(M, ry, CW, DR, 'F'); }
-    doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...MGRAY);
+    if (i % 2 === 1) { doc.setFillColor(...T.rowAlt); doc.rect(M, ry, CW, DR, 'F'); }
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textLabel);
     doc.text(l1 + ':', M + 3, ry + DR - 1.3);
-    doc.setFont('helvetica', 'normal'); doc.setTextColor(...WHITE);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(...T.textPrimary);
     doc.text(v1, mid - 4, ry + DR - 1.3, { align: 'right' });
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(...MGRAY);
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textLabel);
     doc.text(l2 + ':', mid + 4, ry + DR - 1.3);
-    doc.setFont('helvetica', 'normal'); doc.setTextColor(...WHITE);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(...T.textPrimary);
     doc.text(v2, M + CW - 3, ry + DR - 1.3, { align: 'right' });
   });
   y += sumH + 4;
@@ -230,12 +257,17 @@ export async function generateQuotePDF(
     cardHdr(x, y, C3W, c3H, HDR, titleBg, title, border);
     rows.forEach(([lbl, val], i) => { if (lbl) labelVal(x, y + HDR + i * DR, C3W, lbl, val, i); });
   };
-  drawSys(M,            'ROOFING',          NAVY,   roofR);
-  drawSys(M+C3W+3,      'SOLAR & BATERÍAS', ORANGE, solR);
-  drawSys(M+(C3W+3)*2,  'FINANCIAMIENTO',   BG,     finR, true);
+
+  // En modo oscuro: FINANCIAMIENTO usa T.pageBg como fondo del header (efecto flotante + borde naranja)
+  // En modo claro: usa NAVY para que el texto blanco sea legible
+  const finTitleBg: [number,number,number] = isDarkMode ? T.pageBg : NAVY;
+
+  drawSys(M,           'ROOFING',          NAVY,       roofR);
+  drawSys(M+C3W+3,     'SOLAR & BATERÍAS', ORANGE,     solR);
+  drawSys(M+(C3W+3)*2, 'FINANCIAMIENTO',   finTitleBg, finR, true);
   y += c3H + 4;
 
-  // ── Desglose + Opciones (2 columnas) ────────────────────────────────────
+  // ── Desglose + Opciones de Pago (2 columnas) ─────────────────────────────
   const LW = Math.round(CW * 0.56);
   const RW = CW - LW - 4;
   const LX = M;
@@ -266,35 +298,36 @@ export async function generateQuotePDF(
   cardHdr(LX, y, LW, colH, HDR, NAVY, 'DESGLOSE DE PRECIOS');
   let ly = y + HDR;
   pRows.forEach(([lbl, val, isDisc], i) => {
-    if (i%2===1) { doc.setFillColor(...RALT); doc.rect(LX, ly, LW, DR, 'F'); }
-    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(...MGRAY);
+    if (i%2===1) { doc.setFillColor(...T.rowAlt); doc.rect(LX, ly, LW, DR, 'F'); }
+    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textLabel);
     doc.text(lbl, LX + 3, ly + DR - 1.3);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...(isDisc ? ORANGE : WHITE));
+    // Descuentos en rojo, valores normales en textPrimary
+    doc.setTextColor(...(isDisc ? RED : T.textPrimary));
     doc.text(val, LX + LW - 3, ly + DR - 1.3, { align: 'right' });
     ly += DR;
   });
-  // Línea naranja separadora
+  // Línea separadora naranja
   doc.setDrawColor(...ORANGE); doc.setLineWidth(0.5);
   doc.line(LX + 3, ly + 1, LX + LW - 3, ly + 1);
   ly += 3;
   // Valor Cash Total
   doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...ORANGE);
-  doc.text('VALOR CASH TOTAL',  LX + 3, ly + 5.5);
+  doc.text('VALOR CASH TOTAL', LX + 3, ly + 5.5);
   doc.text(fmt(results.cashValue), LX + LW - 3, ly + 5.5, { align: 'right' });
   ly += 8;
   if (hasPronte) {
-    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...MGRAY);
-    doc.text('Pronto Aportado',             LX + 3, ly + 5.5);
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...T.textLabel);
+    doc.text('Pronto Aportado', LX + 3, ly + 5.5);
     doc.text(`-${fmt(inputs.manualPronto)}`, LX + LW - 3, ly + 5.5, { align: 'right' });
     ly += 8;
   }
   // Balance a Financiar
-  doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...WHITE);
-  doc.text('BALANCE A FINANCIAR',        LX + 3, ly + 5.5);
+  doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textPrimary);
+  doc.text('BALANCE A FINANCIAR', LX + 3, ly + 5.5);
   doc.text(fmt(results.valorFinanciado), LX + LW - 3, ly + 5.5, { align: 'right' });
 
-  // — Opciones de pago (derecha)
+  // — Opciones de Pago (derecha)
   cardHdr(RX, y, RW, colH, HDR, ORANGE, 'OPCIONES DE PAGO MENSUAL');
   let ry = y + HDR;
   // Cabecera de tabla
@@ -308,8 +341,8 @@ export async function generateQuotePDF(
   ry += 7;
 
   results.monthlyPayments.forEach((pay, idx) => {
-    if (idx%2===1) { doc.setFillColor(...RALT); doc.rect(RX, ry, RW, PAY_H, 'F'); }
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...MGRAY);
+    if (idx%2===1) { doc.setFillColor(...T.rowAlt); doc.rect(RX, ry, RW, PAY_H, 'F'); }
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...T.textLabel);
     doc.text(`${pay.years} años`, c1, ry + PAY_H - 1.8);
     const aprTxt = pay.maxRate
       ? `${(pay.rate*100).toFixed(1)}-${(pay.maxRate*100).toFixed(1)}%`
@@ -320,20 +353,31 @@ export async function generateQuotePDF(
     ry += PAY_H;
   });
   ry += 3;
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...WHITE);
+  doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textPrimary);
   doc.text('Balance a Financiar', c1, ry + 5);
   doc.setTextColor(...ORANGE); doc.setFontSize(9);
   doc.text(fmt(results.valorFinanciado), RX + RW - 3, ry + 5, { align: 'right' });
 
   y += colH + 4;
 
-  // ── Badge de elegibilidad ─────────────────────────────────────────────────
-  doc.setFillColor(...CARD);
-  doc.roundedRect(M, y, CW, 9.5, 2, 2, 'F');
-  const eligColor: [number,number,number] = results.conditionOk ? GREEN : RED;
+  // ── Badge de elegibilidad — sin verde ────────────────────────────────────
+  const badgeBg: [number,number,number] = isDarkMode ? [45, 53, 97] : [255, 255, 255];
+  doc.setFillColor(...badgeBg);
+  if (!isDarkMode) {
+    doc.setDrawColor(...LBLUE); doc.setLineWidth(0.3);
+    doc.roundedRect(M, y, CW, 9.5, 2, 2, 'FD');
+  } else {
+    doc.roundedRect(M, y, CW, 9.5, 2, 2, 'F');
+  }
+  // Indicador de estado: cuadrado de color antes del texto
+  const eligColor: [number,number,number] = results.conditionOk ? ORANGE : RED;
+  doc.setFillColor(...eligColor);
+  doc.rect(M + 3, y + 3.2, 3, 3, 'F');
+  // Texto del badge (sin caracteres Unicode fuera de Latin-1)
   doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...eligColor);
-  doc.text(results.conditionOk ? '✓ PROYECTO ELEGIBLE' : '✗ NO ELEGIBLE', M + 4, y + 6.5);
-  doc.setFontSize(7.5); doc.setTextColor(...MGRAY);
+  doc.text(results.conditionOk ? 'PROYECTO ELEGIBLE' : 'PROYECTO NO ELEGIBLE', M + 8, y + 6.5);
+  // Roofing share a la derecha
+  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...MGRAY);
   doc.text(
     `Roofing Share: ${(results.roofShare*100).toFixed(1)}%  |  Límite: ${(results.roofLimit*100).toFixed(0)}%`,
     M + CW - 4, y + 6.5, { align: 'right' }
@@ -345,19 +389,16 @@ export async function generateQuotePDF(
     doc.setFillColor(...AMBER);
     doc.roundedRect(M, y, CW, 7.5, 2, 2, 'F');
     doc.setTextColor(...WHITE); doc.setFontSize(7); doc.setFont('helvetica', 'bold');
-    doc.text(`⚠ Para elegibilidad se requiere pronto de: ${fmt(results.requiredProntoForCompliance)}`, PW/2, y + 5, { align: 'center' });
+    doc.text(`! Para elegibilidad se requiere pronto de: ${fmt(results.requiredProntoForCompliance)}`, PW/2, y + 5, { align: 'center' });
   }
 
   // ── Footer ────────────────────────────────────────────────────────────────
-  const FH  = 19.4;          // 55px ≈ 19.4mm
-  const FY  = PH - FH;
-  // Línea naranja sobre footer
+  const FH = 19.4;
+  const FY = PH - FH;
   doc.setDrawColor(...ORANGE); doc.setLineWidth(1.1);
   doc.line(0, FY, PW, FY);
-  // Fondo azul footer
   doc.setFillColor(...NAVY);
   doc.rect(0, FY + 1, PW, FH, 'F');
-  // Texto
   doc.setTextColor(...WHITE); doc.setFontSize(7); doc.setFont('helvetica', 'normal');
   doc.text(`© 2026 Windmar Home · Generado el ${date}`, PW/2, FY + 8,  { align: 'center' });
   doc.text('787-395-7766 | LÍNEA WINDMAR HOME',         PW/2, FY + 13, { align: 'center' });
@@ -375,18 +416,15 @@ export async function generateQuotePDF(
     if (!resp.ok) throw new Error('No se pudo cargar ProyectoCompleto.pdf');
     const proyectoBytes = await resp.arrayBuffer();
 
-    const merged    = await PDFDocument.create();
-    const quotePdf  = await PDFDocument.load(quoteBytes);
-    const instPdf   = await PDFDocument.load(proyectoBytes);
+    const merged   = await PDFDocument.create();
+    const quotePdf = await PDFDocument.load(quoteBytes);
+    const instPdf  = await PDFDocument.load(proyectoBytes);
 
-    const instPages  = await merged.copyPages(instPdf,  instPdf.getPageIndices());
-    const [quotePg]  = await merged.copyPages(quotePdf, [0]);
+    const instPages = await merged.copyPages(instPdf, instPdf.getPageIndices());
+    const [quotePg] = await merged.copyPages(quotePdf, [0]);
 
-    // Pág 1: primera página institucional
     if (instPages.length > 0) merged.addPage(instPages[0]);
-    // Pág 2: cotización
     merged.addPage(quotePg);
-    // Págs 3+: resto institucional
     for (let i = 1; i < instPages.length; i++) merged.addPage(instPages[i]);
 
     const mergedBytes = await merged.save();
