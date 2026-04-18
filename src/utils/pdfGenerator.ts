@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { PDFDocument } from 'pdf-lib';
 import { QuoteInputs, QuoteResults } from '../types';
 
 export interface ConsultorInfo {
@@ -134,12 +135,12 @@ function drawPricingTable(
   return y;
 }
 
-export function generateQuotePDF(
+export async function generateQuotePDF(
   inputs: QuoteInputs,
   results: QuoteResults,
   consultor: ConsultorInfo,
   cliente: ClienteInfo
-): void {
+): Promise<void> {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -441,5 +442,35 @@ export function generateQuotePDF(
 
   const clienteName = cliente.nombre.trim().replace(/\s+/g, '_') || 'Cliente';
   const today = new Date().toLocaleDateString('es-PR').replace(/\//g, '-');
-  doc.save(`Cotizacion_Windmar_${clienteName}_${today}.pdf`);
+  const fileName = `Cotizacion_Windmar_${clienteName}_${today}.pdf`;
+
+  const quoteBytes = doc.output('arraybuffer');
+
+  try {
+    const response = await fetch('/ProyectoCompleto.pdf');
+    if (!response.ok) throw new Error('No se pudo cargar ProyectoCompleto.pdf');
+    const proyectoBytes = await response.arrayBuffer();
+
+    const merged = await PDFDocument.create();
+
+    const quotePdf = await PDFDocument.load(quoteBytes);
+    const proyectoPdf = await PDFDocument.load(proyectoBytes);
+
+    const quotePages = await merged.copyPages(quotePdf, quotePdf.getPageIndices());
+    quotePages.forEach(p => merged.addPage(p));
+
+    const proyectoPages = await merged.copyPages(proyectoPdf, proyectoPdf.getPageIndices());
+    proyectoPages.forEach(p => merged.addPage(p));
+
+    const mergedBytes = await merged.save();
+    const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    doc.save(fileName);
+  }
 }

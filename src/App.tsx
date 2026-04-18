@@ -76,13 +76,14 @@ export default function App() {
     setInputs(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     setPdfLoading(true);
-    setTimeout(() => {
-      generateQuotePDF(inputs, results, consultor, cliente);
+    try {
+      await generateQuotePDF(inputs, results, consultor, cliente);
+    } finally {
       setPdfLoading(false);
       setShowPdfModal(false);
-    }, 200);
+    }
   };
 
   return (
