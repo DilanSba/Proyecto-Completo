@@ -28,7 +28,7 @@ import {
 import { QuoteInputs } from './types';
 import { calculateQuote } from './utils/calculations';
 import { PANEL_PRICES, ROOF_PLAN_RATES } from './constants';
-import { generateQuotePDF, ConsultorInfo, ClienteInfo } from './utils/pdfGenerator';
+import { generateQuotePDF, generateComparisonPDF, ConsultorInfo, ClienteInfo } from './utils/pdfGenerator';
 
 const LOGO_URL = "https://i.postimg.cc/44pJ0vXw/logo.png";
 
@@ -81,11 +81,13 @@ export default function App() {
     if (selectedSealPlans.length === 0) return;
     setPdfLoading(true);
     try {
-      for (const plan of selectedSealPlans) {
-        const planInputs = { ...inputs, roofPlan: plan };
+      if (selectedSealPlans.length === 1) {
+        const planInputs = { ...inputs, roofPlan: selectedSealPlans[0] };
         const planResults = calculateQuote(planInputs);
-        const suffix = selectedSealPlans.length > 1 ? `_${plan}` : '';
-        await generateQuotePDF(planInputs, planResults, consultor, cliente, isDarkMode, suffix);
+        await generateQuotePDF(planInputs, planResults, consultor, cliente, isDarkMode);
+      } else {
+        const allResults = selectedSealPlans.map(p => calculateQuote({ ...inputs, roofPlan: p }));
+        await generateComparisonPDF(inputs, selectedSealPlans, allResults, consultor, cliente, isDarkMode);
       }
     } finally {
       setPdfLoading(false);
@@ -955,7 +957,7 @@ export default function App() {
                   ) : (
                     <Download className="w-4 h-4" />
                   )}
-                  {pdfLoading ? 'Generando...' : selectedSealPlans.length > 1 ? `Generar ${selectedSealPlans.length} PDFs` : 'Generar y Descargar'}
+                  {pdfLoading ? 'Generando...' : selectedSealPlans.length > 1 ? 'Generar Comparativa PDF' : 'Generar y Descargar'}
                 </motion.button>
               </div>
             </motion.div>
