@@ -86,11 +86,12 @@ async function loadLogo(url: string): Promise<LogoData | null> {
 }
 
 export async function generateQuotePDF(
-  inputs:     QuoteInputs,
-  results:    QuoteResults,
-  consultor:  ConsultorInfo,
-  cliente:    ClienteInfo,
-  isDarkMode  = false
+  inputs:        QuoteInputs,
+  results:       QuoteResults,
+  consultor:     ConsultorInfo,
+  cliente:       ClienteInfo,
+  isDarkMode     = false,
+  filenameSuffix = ''
 ): Promise<void> {
 
   const T   = getTheme(isDarkMode);
@@ -428,7 +429,7 @@ export async function generateQuotePDF(
   // ── Merge: Pág 1 institucional → Cotización → Págs 2+ institucionales ────
   const clienteName = cliente.nombre.trim().replace(/\s+/g, '_') || 'Cliente';
   const today       = new Date().toLocaleDateString('es-PR').replace(/\//g, '-');
-  const fileName    = `Cotizacion_Windmar_${clienteName}_${today}.pdf`;
+  const fileName    = `Cotizacion_Windmar_${clienteName}${filenameSuffix}_${today}.pdf`;
   const quoteBytes  = doc.output('arraybuffer');
 
   try {

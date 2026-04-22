@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { QuoteInputs } from './types';
 import { calculateQuote } from './utils/calculations';
-import { PANEL_PRICES } from './constants';
+import { PANEL_PRICES, ROOF_PLAN_RATES } from './constants';
 import { generateQuotePDF, ConsultorInfo, ClienteInfo } from './utils/pdfGenerator';
 
 const LOGO_URL = "https://i.postimg.cc/44pJ0vXw/logo.png";
@@ -37,6 +37,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [selectedSealPlans, setSelectedSealPlans] = useState<('SILVER' | 'GOLD' | 'PLATINUM')[]>(['SILVER']);
   const [consultor, setConsultor] = useState<ConsultorInfo>({ nombre: '', correo: '', telefono: '' });
   const [cliente, setCliente] = useState<ClienteInfo>({ nombre: '', direccion: '', correo: '', telefono: '' });
   const [inputs, setInputs] = useState<QuoteInputs>({
@@ -77,9 +78,15 @@ export default function App() {
   };
 
   const handleDownloadPDF = async () => {
+    if (selectedSealPlans.length === 0) return;
     setPdfLoading(true);
     try {
-      await generateQuotePDF(inputs, results, consultor, cliente, isDarkMode);
+      for (const plan of selectedSealPlans) {
+        const planInputs = { ...inputs, roofPlan: plan };
+        const planResults = calculateQuote(planInputs);
+        const suffix = selectedSealPlans.length > 1 ? `_${plan}` : '';
+        await generateQuotePDF(planInputs, planResults, consultor, cliente, isDarkMode, suffix);
+      }
     } finally {
       setPdfLoading(false);
       setShowPdfModal(false);
@@ -647,7 +654,7 @@ export default function App() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowPdfModal(true)}
+                  onClick={() => { setSelectedSealPlans([inputs.roofPlan]); setShowPdfModal(true); }}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border ${isDarkMode ? 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white' : 'bg-[#1e3a8a] hover:bg-blue-800 border-blue-900 text-white'}`}
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -797,6 +804,58 @@ export default function App() {
               </div>
 
               <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+
+                {/* Sealing Plan Selection */}
+                <div className="space-y-3">
+                  <div className={`flex items-center gap-2 pb-2 border-b ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                    <div className={`w-6 h-6 rounded-lg ${isDarkMode ? 'bg-orange-900/40' : 'bg-orange-50'} flex items-center justify-center`}>
+                      <Home className="w-3.5 h-3.5 text-orange-500" />
+                    </div>
+                    <h3 className={`text-[11px] font-black uppercase tracking-widest ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>Planes de Sellado</h3>
+                    <span className={`text-[10px] ml-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Selecciona 1 o más</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['SILVER', 'GOLD', 'PLATINUM'] as const).map(plan => {
+                      const isSelected = selectedSealPlans.includes(plan);
+                      const rate = ROOF_PLAN_RATES[plan];
+                      const planColors: Record<string, string> = {
+                        SILVER: 'text-slate-400',
+                        GOLD: 'text-yellow-500',
+                        PLATINUM: 'text-blue-400',
+                      };
+                      return (
+                        <button
+                          key={plan}
+                          type="button"
+                          onClick={() =>
+                            setSelectedSealPlans(prev =>
+                              prev.includes(plan) ? prev.filter(p => p !== plan) : [...prev, plan]
+                            )
+                          }
+                          className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                            isSelected
+                              ? 'border-orange-500 bg-orange-500/10'
+                              : isDarkMode
+                              ? 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                              : 'border-slate-200 bg-white hover:border-slate-300'
+                          }`}
+                        >
+                          {isSelected && (
+                            <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center">
+                              <CheckCircle2 className="w-2.5 h-2.5 text-white" />
+                            </div>
+                          )}
+                          <span className={`text-[10px] font-black uppercase tracking-wider ${isSelected ? 'text-orange-500' : planColors[plan]}`}>{plan}</span>
+                          <span className={`text-[9px] mt-0.5 font-mono ${isSelected ? 'text-orange-400' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>${rate}/sqft</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedSealPlans.length === 0 && (
+                    <p className="text-[10px] text-red-400 text-center">Selecciona al menos un plan para continuar</p>
+                  )}
+                </div>
+
                 <div className="space-y-3">
                   <div className={`flex items-center gap-2 pb-2 border-b ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
                     <div className={`w-6 h-6 rounded-lg ${isDarkMode ? 'bg-blue-900/40' : 'bg-blue-50'} flex items-center justify-center`}>
@@ -884,7 +943,7 @@ export default function App() {
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={handleDownloadPDF}
-                  disabled={pdfLoading || !consultor.nombre || !cliente.nombre}
+                  disabled={pdfLoading || !consultor.nombre || !cliente.nombre || selectedSealPlans.length === 0}
                   className="flex items-center gap-2.5 px-5 py-2 bg-[#1e3a8a] hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-900/30"
                 >
                   {pdfLoading ? (
@@ -896,7 +955,7 @@ export default function App() {
                   ) : (
                     <Download className="w-4 h-4" />
                   )}
-                  {pdfLoading ? 'Generando...' : 'Generar y Descargar'}
+                  {pdfLoading ? 'Generando...' : selectedSealPlans.length > 1 ? `Generar ${selectedSealPlans.length} PDFs` : 'Generar y Descargar'}
                 </motion.button>
               </div>
             </motion.div>
