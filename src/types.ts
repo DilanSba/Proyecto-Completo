@@ -13,6 +13,8 @@ export interface QuoteInputs {
   removalPercentage: number;
   applyOrientalSpecialDiscount: boolean;
   employeeDiscountKey: string;
+  solarBundleDiscount: boolean;
+  roBundleDiscount: boolean;
 }
 
 export interface QuoteResults {
@@ -37,6 +39,8 @@ export interface QuoteResults {
   employeeDiscountValue: number;
   roofBaseValue: number;
   roofRemovalValue: number;
+  solarBundleDiscountValue: number;
+  roBundleDiscountValue: number;
 }
 
 export interface MonthlyPayment {

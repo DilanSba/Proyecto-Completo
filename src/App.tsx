@@ -55,6 +55,8 @@ export default function App() {
     removalPercentage: 0,
     applyOrientalSpecialDiscount: false,
     employeeDiscountKey: 'Ninguno',
+    solarBundleDiscount: false,
+    roBundleDiscount: false,
   });
 
   useEffect(() => {
@@ -502,13 +504,73 @@ export default function App() {
                   onClick={() => updateInput('existingSolarCustomer', !inputs.existingSolarCustomer)} 
                   isDarkMode={isDarkMode}
                 />
-                <Toggle 
-                  label="Pago Cash Roofing" 
+                <Toggle
+                  label="Pago Cash Roofing"
                   icon={<DollarSign className="w-4 h-4" />}
-                  active={inputs.roofCashDiscount} 
-                  onClick={() => updateInput('roofCashDiscount', !inputs.roofCashDiscount)} 
+                  active={inputs.roofCashDiscount}
+                  onClick={() => updateInput('roofCashDiscount', !inputs.roofCashDiscount)}
                   isDarkMode={isDarkMode}
                 />
+
+                {/* Bundle Discounts */}
+                <div className={`mt-2 pt-3 border-t ${isDarkMode ? 'border-slate-800' : 'border-slate-100'} space-y-3`}>
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 ${isDarkMode ? 'bg-green-900/30 border-green-800' : 'bg-green-50 border-green-100/50'} rounded-lg border shadow-sm`}>
+                    <h3 className={`text-[10px] font-black ${isDarkMode ? 'text-green-400' : 'text-green-700'} uppercase tracking-widest flex items-center gap-2`}>
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      DESCUENTOS EN BUNDLE 🎯
+                    </h3>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Toggle
+                      label="Bundle Solar + Agua (-$500)"
+                      icon={<Sun className="w-4 h-4" />}
+                      active={inputs.solarBundleDiscount}
+                      onClick={() => updateInput('solarBundleDiscount', !inputs.solarBundleDiscount)}
+                      isDarkMode={isDarkMode}
+                    />
+                    <AnimatePresence>
+                      {inputs.solarBundleDiscount && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className={`mx-1 px-3 py-2 ${isDarkMode ? 'bg-green-900/20 border-green-800' : 'bg-green-50/70 border-green-200'} border rounded-xl`}>
+                            <p className={`text-[9px] font-bold ${isDarkMode ? 'text-green-400' : 'text-green-800'} uppercase tracking-tight leading-tight`}>
+                              Programa Firma y Gana — Descuento de $500 al adquirir Sistema Solar junto a una solución de agua WindMar.
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <Toggle
+                      label="Bundle Reverse Osmosis (-$1,000)"
+                      icon={<Zap className="w-4 h-4" />}
+                      active={inputs.roBundleDiscount}
+                      onClick={() => updateInput('roBundleDiscount', !inputs.roBundleDiscount)}
+                      isDarkMode={isDarkMode}
+                    />
+                    <AnimatePresence>
+                      {inputs.roBundleDiscount && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className={`mx-1 px-3 py-2 ${isDarkMode ? 'bg-green-900/20 border-green-800' : 'bg-green-50/70 border-green-200'} border rounded-xl`}>
+                            <p className={`text-[9px] font-bold ${isDarkMode ? 'text-green-400' : 'text-green-800'} uppercase tracking-tight leading-tight`}>
+                              Descuento de $1,000 en Reverse Osmosis al adquirir en bundle junto con otro producto WindMar Home.
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
                 </div>
             </div>
           </section>
@@ -722,6 +784,20 @@ export default function App() {
                     <>
                       <span className="text-[11px] text-blue-600 font-bold">🏢 Descuento Empleado ({inputs.employeeDiscountKey})</span>
                       <span className="text-[11px] font-bold text-blue-600 text-right">-{formatCurrency(results.employeeDiscountValue)}</span>
+                    </>
+                  )}
+
+                  {results.solarBundleDiscountValue > 0 && (
+                    <>
+                      <span className="text-[11px] text-green-600 font-bold">☀️💧 Bundle Solar + Agua (Firma y Gana)</span>
+                      <span className="text-[11px] font-bold text-green-600 text-right">-{formatCurrency(results.solarBundleDiscountValue)}</span>
+                    </>
+                  )}
+
+                  {results.roBundleDiscountValue > 0 && (
+                    <>
+                      <span className="text-[11px] text-green-600 font-bold">💧 Bundle Reverse Osmosis</span>
+                      <span className="text-[11px] font-bold text-green-600 text-right">-{formatCurrency(results.roBundleDiscountValue)}</span>
                     </>
                   )}
 

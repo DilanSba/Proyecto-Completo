@@ -80,9 +80,14 @@ export function calculateQuote(v: QuoteInputs): QuoteResults {
   const employeeDiscountValueWH = rate > 0 ? whGrossTotalForVip * rate : 0;
   const employeeDiscountValueOriental = rate > 0 ? orientalGrossTotalForVip * rate : 0;
 
-  // Final cash value (Gross - 5% Discount - Employee Discount - $1,000 Discount)
-  const whCashValue = whGrossTotalForVip - vipProjectDiscountWH - employeeDiscountValueWH - vipRoofingDiscount;
-  const orientalCashValue = orientalGrossTotalForVip - vipProjectDiscountOriental - employeeDiscountValueOriental - vipRoofingDiscount;
+  // Bundle discounts (flat fixed amounts)
+  const solarBundleDiscountValue = v.solarBundleDiscount ? 500 : 0;
+  const roBundleDiscountValue = v.roBundleDiscount ? 1000 : 0;
+  const totalBundleDiscounts = solarBundleDiscountValue + roBundleDiscountValue;
+
+  // Final cash value (Gross - 5% Discount - Employee Discount - $1,000 Discount - Bundle Discounts)
+  const whCashValue = whGrossTotalForVip - vipProjectDiscountWH - employeeDiscountValueWH - vipRoofingDiscount - totalBundleDiscounts;
+  const orientalCashValue = orientalGrossTotalForVip - vipProjectDiscountOriental - employeeDiscountValueOriental - vipRoofingDiscount - totalBundleDiscounts;
 
   // Roofing share validation (Based on Gross values to match user's $3,059 calculation)
   const grossEquipment = v.financing === "WH" ? whEquipmentBase : orientalEquipmentBase;
@@ -148,6 +153,8 @@ export function calculateQuote(v: QuoteInputs): QuoteResults {
     vipProjectDiscount: v.financing === "WH" ? vipProjectDiscountWH : vipProjectDiscountOriental,
     employeeDiscountValue: v.financing === "WH" ? employeeDiscountValueWH : employeeDiscountValueOriental,
     roofBaseValue,
-    roofRemovalValue
+    roofRemovalValue,
+    solarBundleDiscountValue,
+    roBundleDiscountValue
   };
 }
