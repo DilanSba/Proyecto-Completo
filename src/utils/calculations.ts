@@ -24,12 +24,41 @@ export function calculateQuote(v: QuoteInputs): QuoteResults {
   const areaConRemocion = v.roofSqft * removalPct;
   const areaSinRemocion = v.roofSqft - areaConRemocion;
 
-  const removalRate = ROOF_REMOVAL_RATES[v.roofPlan] || 0;
-  const baseRate = ROOF_PLAN_RATES[v.roofPlan] || 0;
+  /**
+   * Promo Mes de las Madres — Roofing:
+   * Si está activa y el plan elegido es PLATINUM, se cobra a tarifa GOLD.
+   * El ahorro queda registrado en madresRoofingDiscountValue (diferencia entre PLATINUM y GOLD).
+   */
+  let effectivePlanForRoofing: 'SILVER' | 'GOLD' | 'PLATINUM' = v.roofPlan;
+  let madresRoofingDiscountValue = 0;
+  if (v.promoMadresRoofing && v.roofPlan === 'PLATINUM') {
+    const platinumBaseRate    = ROOF_PLAN_RATES.PLATINUM || 0;
+    const platinumRemovalRate = ROOF_REMOVAL_RATES.PLATINUM || 0;
+    const goldBaseRate        = ROOF_PLAN_RATES.GOLD || 0;
+    const goldRemovalRate     = ROOF_REMOVAL_RATES.GOLD || 0;
+    // ahorro = (platinum_total) - (gold_total) sobre la misma área
+    const platinumTotal = areaConRemocion * platinumRemovalRate + areaSinRemocion * platinumBaseRate;
+    const goldTotal     = areaConRemocion * goldRemovalRate     + areaSinRemocion * goldBaseRate;
+    madresRoofingDiscountValue = Math.max(0, platinumTotal - goldTotal);
+    effectivePlanForRoofing = 'GOLD';
+  }
+
+  const removalRate = ROOF_REMOVAL_RATES[effectivePlanForRoofing] || 0;
+  const baseRate    = ROOF_PLAN_RATES[effectivePlanForRoofing]    || 0;
 
   const roofRemovalValue = areaConRemocion * removalRate;
   const roofBaseValue = areaSinRemocion * baseRate;
-  const roofSubtotal = roofRemovalValue + roofBaseValue;
+  let roofSubtotal = roofRemovalValue + roofBaseValue;
+
+  /**
+   * Promo Farmacias — 10% sobre el total de roofing.
+   * Se aplica DESPUÉS de la promo Madres (si ambas activas, primero Madres cambia tarifa, después Farmacias quita 10%).
+   */
+  let farmaciasRoofingDiscountValue = 0;
+  if (v.promoFarmaciasRoofing) {
+    farmaciasRoofingDiscountValue = roofSubtotal * 0.10;
+    roofSubtotal = roofSubtotal - farmaciasRoofingDiscountValue;
+  }
 
   let solarValue = PANEL_PRICES[v.panels] || 0;
 
@@ -39,6 +68,30 @@ export function calculateQuote(v: QuoteInputs): QuoteResults {
   }
 
   const systemSize = v.panels * 410;
+  const systemKW = systemSize / 1000;
+
+  /**
+   * Promo Mes de las Madres — Solar:
+   *   4-5 kW: $500 de descuento
+   *   5+ kW: $1,000 de descuento
+   */
+  let madresSolarDiscountValue = 0;
+  if (v.promoMadresSolar) {
+    if (systemKW >= 5) madresSolarDiscountValue = 1000;
+    else if (systemKW >= 4) madresSolarDiscountValue = 500;
+    solarValue = Math.max(0, solarValue - madresSolarDiscountValue);
+  }
+
+  /**
+   * Promo Farmacias — Solar (placas únicamente):
+   * 10% sobre solarValue (después de aplicar promos previas).
+   * Se aplica al subtotal de paneles solares.
+   */
+  let farmaciasSolarDiscountValue = 0;
+  if (v.promoFarmaciasSolar) {
+    farmaciasSolarDiscountValue = solarValue * 0.10;
+    solarValue = solarValue - farmaciasSolarDiscountValue;
+  }
 
   const solarWarrantyValue = v.extendedWarranty ? systemSize * 0.15 : 0;
   const batteryValue = BATTERY_PRICES[v.batteries] || 0;
@@ -155,6 +208,10 @@ export function calculateQuote(v: QuoteInputs): QuoteResults {
     roofBaseValue,
     roofRemovalValue,
     solarBundleDiscountValue,
-    roBundleDiscountValue
+    roBundleDiscountValue,
+    madresRoofingDiscountValue,
+    madresSolarDiscountValue,
+    farmaciasRoofingDiscountValue,
+    farmaciasSolarDiscountValue
   };
 }

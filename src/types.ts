@@ -15,6 +15,11 @@ export interface QuoteInputs {
   employeeDiscountKey: string;
   solarBundleDiscount: boolean;
   roBundleDiscount: boolean;
+  // Promociones (Madres 2026 + Farmacias)
+  promoMadresRoofing: boolean;
+  promoMadresSolar: boolean;
+  promoFarmaciasRoofing: boolean;
+  promoFarmaciasSolar: boolean;
 }
 
 export interface QuoteResults {
@@ -41,6 +46,11 @@ export interface QuoteResults {
   roofRemovalValue: number;
   solarBundleDiscountValue: number;
   roBundleDiscountValue: number;
+  // Descuentos derivados de las promociones
+  madresRoofingDiscountValue: number;     // Platinum→Gold rate diff
+  madresSolarDiscountValue: number;       // $500 / $1000 según kW
+  farmaciasRoofingDiscountValue: number;  // 10% sobre roofing
+  farmaciasSolarDiscountValue: number;    // 10% sobre solar (placas)
 }
 
 export interface MonthlyPayment {

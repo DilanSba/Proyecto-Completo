@@ -35,8 +35,8 @@ function getTheme(dark: boolean): Theme {
   return {
     pageBg:      [244, 246, 250],  // #F4F6FA
     sectionBg:   [255, 255, 255],  // blanco
-    textPrimary: [35,  31,  32 ],  // #231F20
-    textLabel:   [29,  66,  155],  // #1D429B (azul para labels)
+    textPrimary: [0,   0,   0  ],  // negro puro (per request)
+    textLabel:   [60,  60,  60 ],  // gris oscuro casi negro para labels (no más azul)
     rowAlt:      [238, 241, 248],  // #EEF1F8
   };
 }
@@ -108,40 +108,58 @@ export async function generateQuotePDF(
   doc.setFillColor(...T.pageBg);
   doc.rect(0, 0, PW, PH, 'F');
 
-  // ── Barra naranja superior ───────────────────────────────────────────────
-  doc.setFillColor(...ORANGE);
-  doc.rect(0, 0, PW, 2.2, 'F');
+  // ── HEADER estilo loan/lease (navy + acento naranja + 3 zonas) ───────────
+  const HEADER_H = 22;  // altura header navy en mm
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 0, PW, HEADER_H, 'F');
 
-  // ── Logo — tamaño calculado por aspect ratio, centrado en el header ──────
+  // Acento naranja: strip 2mm debajo del header navy
+  doc.setFillColor(...ORANGE);
+  doc.rect(0, HEADER_H, PW, 2, 'F');
+
+  // Acento naranja: stripe vertical 1.5mm a la izquierda
+  doc.setFillColor(...ORANGE);
+  doc.rect(0, 0, 1.5, HEADER_H, 'F');
+
+  // Logo Windmar — pill blanco para que destaque sobre navy
   if (logoData) {
-    // Área del header: y=2.2mm (barra naranja) a y=24.5mm (separador) = 22.3mm
-    // Altura máx del logo: 16mm. Ancho calculado por aspect ratio, máx 60mm.
-    const logoH = Math.min(16, 22.3 * 0.72);          // 72% del área del header
-    const logoW = Math.min(60, logoH * logoData.aspectRatio);
-    const logoY = 2.2 + (22.3 - logoH) / 2;           // centrado vertical en el header
+    const logoH = 14;
+    const logoW = logoH * logoData.aspectRatio;
+    const logoY = (HEADER_H - logoH) / 2;
+    // Pill blanco background
+    doc.setFillColor(...WHITE);
+    doc.roundedRect(M - 1, logoY - 1, logoW + 2, logoH + 2, 1, 1, 'F');
     doc.addImage(logoData.dataUrl, 'PNG', M, logoY, logoW, logoH);
   } else {
     doc.setTextColor(...WHITE);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('WINDMAR HOME', M, 14);
+    doc.text('WINDMAR HOME', M + 3, 13);
   }
 
-  // ── Header derecho ───────────────────────────────────────────────────────
-  const rx = PW - M;
-  doc.setFontSize(9);   doc.setFont('helvetica', 'bold');   doc.setTextColor(...ORANGE);
-  doc.text('787-395-7766', rx, 9.5, { align: 'right' });
-  doc.setFontSize(8);   doc.setFont('helvetica', 'normal'); doc.setTextColor(...LBLUE);
-  doc.text('Línea Windmar Home', rx, 14, { align: 'right' });
-  doc.setFontSize(7.5); doc.setTextColor(...MGRAY);
-  doc.text('Roofing · Solar · Baterías de Alta Ingeniería', rx, 17.5, { align: 'right' });
-  doc.setFontSize(8);   doc.setTextColor(...WHITE);
-  doc.text(date, rx, 21.5, { align: 'right' });
+  // Título center: "WINDMAR · PROYECTO COMPLETO"
+  doc.setTextColor(...WHITE);
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.text('WINDMAR PROYECTO COMPLETO', PW / 2, 10, { align: 'center' });
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...ORANGE);
+  doc.text('ROOFING · SOLAR · BATERÍAS DE ALTA INGENIERÍA', PW / 2, 14.5, { align: 'center' });
 
-  // ── Separador naranja ────────────────────────────────────────────────────
-  let y = 24.5;
-  doc.setDrawColor(...ORANGE);
-  doc.setLineWidth(0.55);
+  // Header derecho: cotización + fecha
+  const rx = PW - M;
+  doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...WHITE);
+  doc.text('787-395-7766', rx, 10, { align: 'right' });
+  doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...LBLUE);
+  doc.text('Línea Windmar Home', rx, 14, { align: 'right' });
+  doc.setFontSize(7); doc.setTextColor(...WHITE);
+  doc.text(date, rx, 18.5, { align: 'right' });
+
+  // Inicio del contenido
+  let y = HEADER_H + 4;  // pequeño espacio bajo el acento naranja
+  doc.setDrawColor(...LBLUE);
+  doc.setLineWidth(0.3);
   doc.line(M, y, PW - M, y);
   y += 3;
 
@@ -415,16 +433,65 @@ export async function generateQuotePDF(
 
   // ── Footer ────────────────────────────────────────────────────────────────
   const FH = 19.4;
-  const FY = PH - FH;
-  doc.setDrawColor(...ORANGE); doc.setLineWidth(1.1);
-  doc.line(0, FY, PW, FY);
+  // ── FOOTER estilo loan/lease (3 columnas) ────────────────────────────────
+  const FOOTER_H = 22;
+  const FY = PH - FOOTER_H;
+
+  // Strip naranja arriba del footer
+  doc.setFillColor(...ORANGE);
+  doc.rect(0, FY - 1.5, PW, 1.5, 'F');
+  // Stripe naranja vertical 1.5mm a la izquierda
+  doc.setFillColor(...ORANGE);
+  doc.rect(0, FY, 1.5, FOOTER_H, 'F');
+  // Fondo navy
   doc.setFillColor(...NAVY);
-  doc.rect(0, FY + 1, PW, FH, 'F');
-  doc.setTextColor(...WHITE); doc.setFontSize(7); doc.setFont('helvetica', 'normal');
-  doc.text(`© 2026 Windmar Home · Generado el ${date}`, PW/2, FY + 8,  { align: 'center' });
-  doc.text('787-395-7766 | LÍNEA WINDMAR HOME',         PW/2, FY + 13, { align: 'center' });
-  doc.setFontSize(6.5);
-  doc.text('Página 2', PW - M, FY + 8, { align: 'right' });
+  doc.rect(0, FY, PW, FOOTER_H, 'F');
+
+  // Anchos de columna (descartando los 1.5mm del stripe izquierdo)
+  const FOOT_M = 6;            // margen interno
+  const C1_W = PW * 0.28;      // logo + brand
+  const C2_W = PW * 0.36;      // contacto
+  // const C3_W = PW * 0.36;   // dirección (resto)
+  const C1_X = 1.5 + FOOT_M;
+  const C2_X = C1_X + C1_W;
+  const C3_X = C2_X + C2_W;
+
+  // Columna 1: logo + brand
+  if (logoData) {
+    const lH = 10;
+    const lW = lH * logoData.aspectRatio;
+    doc.setFillColor(...WHITE);
+    doc.roundedRect(C1_X - 1, FY + 4, lW + 2, lH + 2, 0.8, 0.8, 'F');
+    doc.addImage(logoData.dataUrl, 'PNG', C1_X, FY + 5, lW, lH);
+  }
+  doc.setTextColor(...WHITE); doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+  doc.text('WINDMAR HOME', C1_X, FY + 19);
+
+  // Separador vertical 1-2
+  doc.setDrawColor(140, 140, 170);
+  doc.setLineWidth(0.2);
+  doc.line(C2_X - 2, FY + 4, C2_X - 2, FY + FOOTER_H - 4);
+
+  // Columna 2: contacto
+  doc.setTextColor(...WHITE); doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+  doc.text('Contáctanos', C2_X, FY + 7);
+  doc.setTextColor(...LBLUE); doc.setFontSize(6.8); doc.setFont('helvetica', 'normal');
+  doc.text('ventas@windmarhome.com', C2_X, FY + 12);
+  doc.text('787-395-7766 · Línea Windmar Home', C2_X, FY + 16);
+  doc.text('Telemercadeo 811 · Ventas 839',     C2_X, FY + 20);
+
+  // Separador vertical 2-3
+  doc.setDrawColor(140, 140, 170);
+  doc.setLineWidth(0.2);
+  doc.line(C3_X - 2, FY + 4, C3_X - 2, FY + FOOTER_H - 4);
+
+  // Columna 3: dirección
+  doc.setTextColor(...WHITE); doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+  doc.text('Dirección', C3_X, FY + 7);
+  doc.setTextColor(...LBLUE); doc.setFontSize(6.8); doc.setFont('helvetica', 'normal');
+  doc.text('1255 Avenida F.D. Roosevelt,', C3_X, FY + 12);
+  doc.text('San Juan, 00920, Puerto Rico.', C3_X, FY + 16);
+  doc.text(`Cotización · ${date}`,         C3_X, FY + 20);
 
   // ── Merge: Pág 1 institucional → Cotización → Págs 2+ institucionales ────
   const clienteName = cliente.nombre.trim().replace(/\s+/g, '_') || 'Cliente';
