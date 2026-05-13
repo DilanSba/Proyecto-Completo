@@ -29,17 +29,38 @@ import { QuoteInputs } from './types';
 import { calculateQuote } from './utils/calculations';
 import { PANEL_PRICES, ROOF_PLAN_RATES } from './constants';
 import { generateQuotePDF, generateComparisonPDF, ConsultorInfo, ClienteInfo } from './utils/pdfGenerator';
+import { Header } from './components/Header';
+import { Footer } from './components/Footer';
+import { PDFModal, type Idioma, type SealPlan, type PromoFlags, type PromoSavings } from './components/PDFModal';
 
 const LOGO_URL = "https://i.postimg.cc/44pJ0vXw/logo.png";
+const WH_LOGO_URL = "https://sales.p.whfinancial.digifi.io/api/branding/logo/b5c3e9d2-b49a-4b0b-8ab3-0486b316dfec-192c3bc4a390192c3bc4a3900010a8c898b-56363bd6-2be5-4f2c-9637-1f1fb609bd6a.jpg";
+const ORIENTAL_LOGO_URL = "https://orientalbank.com/themes/orientalbank/images/logo_oriental-bank.png";
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    try { return localStorage.getItem('wh-theme') === 'dark'; }
+    catch { return false; }
+  });
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
-  const [selectedSealPlans, setSelectedSealPlans] = useState<('SILVER' | 'GOLD' | 'PLATINUM')[]>(['SILVER']);
+  const [selectedSealPlans, setSelectedSealPlans] = useState<SealPlan[]>(['SILVER']);
   const [consultor, setConsultor] = useState<ConsultorInfo>({ nombre: '', correo: '', telefono: '' });
   const [cliente, setCliente] = useState<ClienteInfo>({ nombre: '', direccion: '', correo: '', telefono: '' });
+  const [idiomaPDF, setIdiomaPDF] = useState<Idioma>('es');
+
+  // Dark mode pattern (clase .dark en html + persistencia wh-theme)
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (isDarkMode) {
+      root.classList.add('dark');
+      try { localStorage.setItem('wh-theme', 'dark'); } catch { /* ignore */ }
+    } else {
+      root.classList.remove('dark');
+      try { localStorage.setItem('wh-theme', 'light'); } catch { /* ignore */ }
+    }
+  }, [isDarkMode]);
   const [inputs, setInputs] = useState<QuoteInputs>({
     roofPlan: 'SILVER',
     roofSqft: 0,
@@ -57,6 +78,10 @@ export default function App() {
     employeeDiscountKey: 'Ninguno',
     solarBundleDiscount: false,
     roBundleDiscount: false,
+    promoMadresRoofing: false,
+    promoMadresSolar: false,
+    promoFarmaciasRoofing: false,
+    promoFarmaciasSolar: false,
   });
 
   useEffect(() => {
@@ -83,13 +108,15 @@ export default function App() {
     if (selectedSealPlans.length === 0) return;
     setPdfLoading(true);
     try {
+      // PDF siempre en tema claro — no se vincula al dark mode de la app
+      const PDF_FORCE_LIGHT = false;
       if (selectedSealPlans.length === 1) {
         const planInputs = { ...inputs, roofPlan: selectedSealPlans[0] };
         const planResults = calculateQuote(planInputs);
-        await generateQuotePDF(planInputs, planResults, consultor, cliente, isDarkMode);
+        await generateQuotePDF(planInputs, planResults, consultor, cliente, PDF_FORCE_LIGHT);
       } else {
         const allResults = selectedSealPlans.map(p => calculateQuote({ ...inputs, roofPlan: p }));
-        await generateComparisonPDF(inputs, selectedSealPlans, allResults, consultor, cliente, isDarkMode);
+        await generateComparisonPDF(inputs, selectedSealPlans, allResults, consultor, cliente, PDF_FORCE_LIGHT);
       }
     } finally {
       setPdfLoading(false);
@@ -231,58 +258,8 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 transition-all bg-transparent">
-        <div className="max-w-[1600px] mx-auto px-6 pt-4 pb-1 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
-            <motion.div 
-              whileHover={{ scale: 1.05 }}
-              className="flex items-center justify-center"
-            >
-              <img src={LOGO_URL} alt="Windmar Home" className="h-16 md:h-24 transition-all" referrerPolicy="no-referrer" />
-            </motion.div>
-            
-            <div className="flex flex-col items-center md:items-start">
-              <h1 className={`text-lg md:text-xl lg:text-2xl font-black tracking-tighter ${isDarkMode ? 'text-blue-400' : 'text-[#1e3a8a]'} leading-none uppercase`}>
-                WINDMAR PROYECTO COMPLETO
-              </h1>
-              <p className={`text-[10px] md:text-[12px] ${isDarkMode ? 'text-blue-300/80' : 'text-blue-500/80'} font-bold mt-1 tracking-tight`}>
-                Roofing, Solar y Baterías de alta ingeniería
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`p-2.5 rounded-2xl border transition-all shadow-lg flex items-center gap-2 ${
-                isDarkMode 
-                  ? 'bg-slate-800 border-slate-700 text-yellow-400 shadow-yellow-900/20' 
-                  : 'bg-white border-slate-200 text-slate-600 shadow-blue-900/10'
-              }`}
-            >
-              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">
-                {isDarkMode ? 'Modo Claro' : 'Modo Oscuro'}
-              </span>
-            </motion.button>
-
-            <div className="flex flex-col items-center md:items-end gap-0">
-              <div className="flex items-center gap-2 text-[#f59e0b]">
-                <Phone className="w-4 h-4 md:w-5 md:h-5 fill-current" />
-                <span className="text-lg md:text-xl font-black tracking-tight">787-395-7766</span>
-              </div>
-              <p className={`text-[9px] font-black ${isDarkMode ? 'text-blue-400' : 'text-[#1e3a8a]'} uppercase tracking-[0.15em]`}>LINEA WINDMAR HOME</p>
-              <div className="flex gap-3 text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                <span>TELEMERCADEO - 811</span>
-                <span>VENTAS - 839</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Header — extraído a componente */}
+      <Header isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
 
       <main className="max-w-[1600px] mx-auto px-6 pb-6 pt-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
         
@@ -294,19 +271,66 @@ export default function App() {
           className="lg:col-span-4 space-y-4"
         >
           <section className={`${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-white/20'} backdrop-blur-md rounded-3xl border shadow-2xl shadow-black/20`}>
-            <div className={`p-3 border-b ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'} flex items-center justify-center`}>
-              <div className={`flex ${isDarkMode ? 'bg-slate-950/50 border-slate-700' : 'bg-slate-200/50 border-slate-300'} p-1 rounded-xl border shadow-inner`}>
-                <button 
+            {/* Selector de financiamiento — cards con logos */}
+            <div className={`p-4 border-b ${isDarkMode ? 'border-slate-800 bg-slate-800/30' : 'border-slate-100 bg-slate-50/40'}`}>
+              <p className={`text-[9px] font-black uppercase tracking-[0.2em] mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                Institución Financiera
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
                   onClick={() => updateInput('financing', 'WH')}
-                  className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${inputs.financing === 'WH' ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'bg-white text-blue-700 shadow-md') : (isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')}`}
+                  className={`relative p-3 rounded-2xl border-2 transition-all text-left ${
+                    inputs.financing === 'WH'
+                      ? 'border-windmar-blue bg-windmar-blue/5 shadow-lg shadow-windmar-blue/15'
+                      : isDarkMode
+                        ? 'border-slate-700 bg-slate-800/40 hover:border-slate-600'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
                 >
-                  WH Financial
+                  <div className="flex flex-col gap-2">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden ${
+                      inputs.financing === 'WH' ? 'bg-white' : isDarkMode ? 'bg-slate-700' : 'bg-slate-100'
+                    }`}>
+                      <img src={WH_LOGO_URL} alt="WH Financial" className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
+                    </div>
+                    <div>
+                      <p className={`text-[11px] font-black uppercase tracking-tight ${
+                        inputs.financing === 'WH' ? 'text-windmar-blue' : isDarkMode ? 'text-slate-200' : 'text-slate-900'
+                      }`}>WH Financial</p>
+                      <p className="text-[9px] font-bold text-slate-400 mt-0.5">Tasas fijas competitivas</p>
+                    </div>
+                  </div>
+                  {inputs.financing === 'WH' && (
+                    <CheckCircle2 className="absolute top-2 right-2 w-4 h-4 text-windmar-blue" />
+                  )}
                 </button>
-                <button 
+
+                <button
                   onClick={() => updateInput('financing', 'ORIENTAL')}
-                  className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${inputs.financing === 'ORIENTAL' ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'bg-white text-blue-700 shadow-md') : (isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')}`}
+                  className={`relative p-3 rounded-2xl border-2 transition-all text-left ${
+                    inputs.financing === 'ORIENTAL'
+                      ? 'border-windmar-gold bg-windmar-gold/5 shadow-lg shadow-windmar-gold/15'
+                      : isDarkMode
+                        ? 'border-slate-700 bg-slate-800/40 hover:border-slate-600'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
                 >
-                  Oriental
+                  <div className="flex flex-col gap-2">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden ${
+                      inputs.financing === 'ORIENTAL' ? 'bg-white' : isDarkMode ? 'bg-slate-700' : 'bg-slate-100'
+                    }`}>
+                      <img src={ORIENTAL_LOGO_URL} alt="Oriental Bank" className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
+                    </div>
+                    <div>
+                      <p className={`text-[11px] font-black uppercase tracking-tight ${
+                        inputs.financing === 'ORIENTAL' ? 'text-windmar-gold' : isDarkMode ? 'text-slate-200' : 'text-slate-900'
+                      }`}>Oriental Bank</p>
+                      <p className="text-[9px] font-bold text-slate-400 mt-0.5">Opciones flexibles</p>
+                    </div>
+                  </div>
+                  {inputs.financing === 'ORIENTAL' && (
+                    <CheckCircle2 className="absolute top-2 right-2 w-4 h-4 text-windmar-gold" />
+                  )}
                 </button>
               </div>
             </div>
@@ -826,220 +850,47 @@ export default function App() {
         </motion.div>
       </main>
 
-      {/* Footer */}
-      <footer className={`max-w-[1600px] mx-auto px-6 py-6 border-t ${isDarkMode ? 'border-slate-800' : 'border-slate-200'} mt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-slate-400 text-[11px]`}>
-        <div className="flex items-center gap-4">
-          <img src={LOGO_URL} alt="Windmar Home" className={`h-5 grayscale opacity-50 ${isDarkMode ? 'invert' : ''}`} referrerPolicy="no-referrer" />
-          <p>© 2026 Windmar Home Support. Todos los derechos reservados.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-          Estado del Sistema: Operacional
-        </div>
-      </footer>
+      {/* Footer — extraído a componente (3 columnas) */}
+      <div className="max-w-[1600px] mx-auto px-6 mt-6">
+        <Footer />
+      </div>
       </div>
 
-      {/* PDF Modal */}
-      <AnimatePresence>
-        {showPdfModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-          >
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowPdfModal(false)}
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 20 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className={`relative w-full max-w-lg rounded-3xl border shadow-2xl overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}
-            >
-              <div className="bg-[#1e3a8a] px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
-                    <Download className="w-4.5 h-4.5 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-black text-white uppercase tracking-widest">Descargar Cotización PDF</h2>
-                    <p className="text-[10px] text-blue-200 mt-0.5">Complete la información antes de generar el documento</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowPdfModal(false)}
-                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-                >
-                  <X className="w-4 h-4 text-white" />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-
-                {/* Sealing Plan Selection */}
-                <div className="space-y-3">
-                  <div className={`flex items-center gap-2 pb-2 border-b ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                    <div className={`w-6 h-6 rounded-lg ${isDarkMode ? 'bg-orange-900/40' : 'bg-orange-50'} flex items-center justify-center`}>
-                      <Home className="w-3.5 h-3.5 text-orange-500" />
-                    </div>
-                    <h3 className={`text-[11px] font-black uppercase tracking-widest ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>Planes de Sellado</h3>
-                    <span className={`text-[10px] ml-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Selecciona 1 o más</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['SILVER', 'GOLD', 'PLATINUM'] as const).map(plan => {
-                      const isSelected = selectedSealPlans.includes(plan);
-                      const rate = ROOF_PLAN_RATES[plan];
-                      const planColors: Record<string, string> = {
-                        SILVER: 'text-slate-400',
-                        GOLD: 'text-yellow-500',
-                        PLATINUM: 'text-blue-400',
-                      };
-                      return (
-                        <button
-                          key={plan}
-                          type="button"
-                          onClick={() =>
-                            setSelectedSealPlans(prev =>
-                              prev.includes(plan) ? prev.filter(p => p !== plan) : [...prev, plan]
-                            )
-                          }
-                          className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
-                            isSelected
-                              ? 'border-orange-500 bg-orange-500/10'
-                              : isDarkMode
-                              ? 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
-                              : 'border-slate-200 bg-white hover:border-slate-300'
-                          }`}
-                        >
-                          {isSelected && (
-                            <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center">
-                              <CheckCircle2 className="w-2.5 h-2.5 text-white" />
-                            </div>
-                          )}
-                          <span className={`text-[10px] font-black uppercase tracking-wider ${isSelected ? 'text-orange-500' : planColors[plan]}`}>{plan}</span>
-                          <span className={`text-[9px] mt-0.5 font-mono ${isSelected ? 'text-orange-400' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>${rate}/sqft</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {selectedSealPlans.length === 0 && (
-                    <p className="text-[10px] text-red-400 text-center">Selecciona al menos un plan para continuar</p>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <div className={`flex items-center gap-2 pb-2 border-b ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                    <div className={`w-6 h-6 rounded-lg ${isDarkMode ? 'bg-blue-900/40' : 'bg-blue-50'} flex items-center justify-center`}>
-                      <User className="w-3.5 h-3.5 text-blue-600" />
-                    </div>
-                    <h3 className={`text-[11px] font-black uppercase tracking-widest ${isDarkMode ? 'text-blue-400' : 'text-[#1e3a8a]'}`}>Consultor</h3>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    <PdfInputField
-                      label="Nombre completo"
-                      value={consultor.nombre}
-                      onChange={v => setConsultor(p => ({ ...p, nombre: v }))}
-                      placeholder="Ej. Juan García"
-                      isDarkMode={isDarkMode}
-                    />
-                    <PdfInputField
-                      label="Correo electrónico"
-                      value={consultor.correo}
-                      onChange={v => setConsultor(p => ({ ...p, correo: v }))}
-                      placeholder="consultor@windmarhome.com"
-                      type="email"
-                      isDarkMode={isDarkMode}
-                    />
-                    <PdfInputField
-                      label="Teléfono"
-                      value={consultor.telefono}
-                      onChange={v => setConsultor(p => ({ ...p, telefono: v }))}
-                      placeholder="787-000-0000"
-                      type="tel"
-                      isDarkMode={isDarkMode}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className={`flex items-center gap-2 pb-2 border-b ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                    <div className={`w-6 h-6 rounded-lg ${isDarkMode ? 'bg-blue-900/40' : 'bg-blue-50'} flex items-center justify-center`}>
-                      <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                    </div>
-                    <h3 className={`text-[11px] font-black uppercase tracking-widest ${isDarkMode ? 'text-blue-400' : 'text-[#1e3a8a]'}`}>Cliente</h3>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    <PdfInputField
-                      label="Nombre completo"
-                      value={cliente.nombre}
-                      onChange={v => setCliente(p => ({ ...p, nombre: v }))}
-                      placeholder="Ej. María López"
-                      isDarkMode={isDarkMode}
-                    />
-                    <PdfInputField
-                      label="Dirección"
-                      value={cliente.direccion}
-                      onChange={v => setCliente(p => ({ ...p, direccion: v }))}
-                      placeholder="Calle, Ciudad, PR 00000"
-                      isDarkMode={isDarkMode}
-                    />
-                    <PdfInputField
-                      label="Correo electrónico"
-                      value={cliente.correo}
-                      onChange={v => setCliente(p => ({ ...p, correo: v }))}
-                      placeholder="cliente@email.com"
-                      type="email"
-                      isDarkMode={isDarkMode}
-                    />
-                    <PdfInputField
-                      label="Teléfono"
-                      value={cliente.telefono}
-                      onChange={v => setCliente(p => ({ ...p, telefono: v }))}
-                      placeholder="787-000-0000"
-                      type="tel"
-                      isDarkMode={isDarkMode}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className={`px-6 py-4 border-t ${isDarkMode ? 'border-slate-700 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'} flex items-center justify-between gap-3`}>
-                <button
-                  onClick={() => setShowPdfModal(false)}
-                  className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all border ${isDarkMode ? 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-500' : 'border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
-                >
-                  Cancelar
-                </button>
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={handleDownloadPDF}
-                  disabled={pdfLoading || !consultor.nombre || !cliente.nombre || selectedSealPlans.length === 0}
-                  className="flex items-center gap-2.5 px-5 py-2 bg-[#1e3a8a] hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-900/30"
-                >
-                  {pdfLoading ? (
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-                      className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
-                    />
-                  ) : (
-                    <Download className="w-4 h-4" />
-                  )}
-                  {pdfLoading ? 'Generando...' : selectedSealPlans.length > 1 ? 'Generar Comparativa PDF' : 'Generar y Descargar'}
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* PDF Modal — extraído a componente */}
+      <PDFModal
+        isOpen={showPdfModal}
+        isGenerating={pdfLoading}
+        onClose={() => setShowPdfModal(false)}
+        onConfirm={handleDownloadPDF}
+        selectedSealPlans={selectedSealPlans}
+        onSelectedSealPlansChange={setSelectedSealPlans}
+        planRates={ROOF_PLAN_RATES}
+        consultor={consultor}
+        onConsultorChange={setConsultor}
+        cliente={cliente}
+        onClienteChange={setCliente}
+        idioma={idiomaPDF}
+        onIdiomaChange={setIdiomaPDF}
+        promos={{
+          madresRoofing: inputs.promoMadresRoofing,
+          madresSolar: inputs.promoMadresSolar,
+          farmaciasRoofing: inputs.promoFarmaciasRoofing,
+          farmaciasSolar: inputs.promoFarmaciasSolar,
+        }}
+        onPromosChange={(p: PromoFlags) => setInputs(prev => ({
+          ...prev,
+          promoMadresRoofing: p.madresRoofing,
+          promoMadresSolar: p.madresSolar,
+          promoFarmaciasRoofing: p.farmaciasRoofing,
+          promoFarmaciasSolar: p.farmaciasSolar,
+        }))}
+        promoSavings={{
+          madresRoofing: results.madresRoofingDiscountValue,
+          madresSolar: results.madresSolarDiscountValue,
+          farmaciasRoofing: results.farmaciasRoofingDiscountValue,
+          farmaciasSolar: results.farmaciasSolarDiscountValue,
+        } satisfies PromoSavings}
+      />
     </div>
   );
 }

@@ -6,3 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+# Backend Express — SQLite runtime (no commitear)
+quotes.db
+*.db
+*.db-journal
