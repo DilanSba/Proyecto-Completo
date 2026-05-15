@@ -6,6 +6,29 @@ import { ROOF_PLAN_RATES } from '../constants';
 export interface ConsultorInfo { nombre: string; correo: string; telefono: string; }
 export interface ClienteInfo   { nombre: string; direccion: string; correo: string; telefono: string; }
 
+export type Idioma = 'es' | 'en';
+
+export interface PromoFlagsPDF {
+  madresRoofing: boolean;
+  madresSolar: boolean;
+  farmaciasRoofing: boolean;
+  farmaciasSolar: boolean;
+}
+
+// Helper translator
+function makeTr(idioma: Idioma) {
+  return (es: string, en: string): string => (idioma === 'en' ? en : es);
+}
+
+// ── Colores para banners promo ──────────────────────────────────────────────
+const MADRES_PINK_BORDER: [number,number,number] = [232, 79, 151];   // #E84F97
+const MADRES_PINK_BG:     [number,number,number] = [253, 233, 244];  // rosado pálido
+const MADRES_PINK_TEXT:   [number,number,number] = [157, 23, 77];    // rosa oscuro
+
+const FARM_GREEN_BORDER:  [number,number,number] = [15, 157, 88];    // #0F9D58
+const FARM_GREEN_BG:      [number,number,number] = [220, 240, 226];  // verde pálido
+const FARM_GREEN_TEXT:    [number,number,number] = [22, 101, 52];    // verde oscuro
+
 // ── Paleta fija (igual en ambos modos) ───────────────────────────────────────
 const ORANGE: [number,number,number] = [248, 155, 36 ]; // #F89B24
 const NAVY:   [number,number,number] = [29,  66,  155]; // #1D429B
@@ -91,16 +114,19 @@ export async function generateQuotePDF(
   results:    QuoteResults,
   consultor:  ConsultorInfo,
   cliente:    ClienteInfo,
-  isDarkMode  = false
+  isDarkMode  = false,
+  idioma:     Idioma = 'es',
+  promos?:    PromoFlagsPDF,
 ): Promise<void> {
 
+  const tr = makeTr(idioma);
   const T   = getTheme(isDarkMode);
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
   const PW  = doc.internal.pageSize.getWidth();   // 215.9 mm
   const PH  = doc.internal.pageSize.getHeight();  // 279.4 mm
   const M   = 12;
   const CW  = PW - M * 2;
-  const date = new Date().toLocaleDateString('es-PR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const date = new Date().toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-PR', { day: '2-digit', month: 'long', year: 'numeric' });
 
   const logoData = await loadLogo('https://i.postimg.cc/RF76rLv3/logo.png');
 
@@ -141,18 +167,23 @@ export async function generateQuotePDF(
   doc.setTextColor(...WHITE);
   doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
-  doc.text('WINDMAR PROYECTO COMPLETO', PW / 2, 10, { align: 'center' });
+  doc.text(tr('WINDMAR PROYECTO COMPLETO', 'WINDMAR COMPLETE PROJECT'), PW / 2, 10, { align: 'center' });
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...ORANGE);
-  doc.text('ROOFING · SOLAR · BATERÍAS DE ALTA INGENIERÍA', PW / 2, 14.5, { align: 'center' });
+  // Antes en ORANGE — ahora LBLUE para reducir naranja, mantiene buen contraste sobre navy
+  doc.setTextColor(...LBLUE);
+  doc.text(
+    tr('ROOFING · SOLAR · BATERÍAS DE ALTA INGENIERÍA',
+       'ROOFING · SOLAR · HIGH-ENGINEERING BATTERIES'),
+    PW / 2, 14.5, { align: 'center' }
+  );
 
   // Header derecho: cotización + fecha
   const rx = PW - M;
   doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...WHITE);
   doc.text('787-395-7766', rx, 10, { align: 'right' });
   doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...LBLUE);
-  doc.text('Línea Windmar Home', rx, 14, { align: 'right' });
+  doc.text(tr('Línea Windmar Home', 'Windmar Home Line'), rx, 14, { align: 'right' });
   doc.setFontSize(7); doc.setTextColor(...WHITE);
   doc.text(date, rx, 18.5, { align: 'right' });
 
@@ -165,10 +196,11 @@ export async function generateQuotePDF(
 
   // ── Título ───────────────────────────────────────────────────────────────
   doc.setFontSize(17); doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textPrimary);
-  doc.text('COTIZACIÓN — PROYECTO COMPLETO', M, y + 7);
+  doc.text(tr('COTIZACIÓN — PROYECTO COMPLETO', 'QUOTE — COMPLETE PROJECT'), M, y + 7);
   y += 9;
-  doc.setFontSize(10.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...ORANGE);
-  doc.text('Roofing + Solar + Batería', M, y + 6);
+  // Antes en ORANGE — ahora NAVY para reducir naranja
+  doc.setFontSize(10.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...NAVY);
+  doc.text(tr('Roofing + Solar + Batería', 'Roofing + Solar + Battery'), M, y + 6);
   y += 9;
 
   // ── Helpers ──────────────────────────────────────────────────────────────
@@ -202,12 +234,16 @@ export async function generateQuotePDF(
 
   // ── Consultor + Cliente ──────────────────────────────────────────────────
   const HALF = (CW - 4) / 2;
-  const cRows:  [string,string][] = [['Nombre', consultor.nombre], ['Correo', consultor.correo], ['Teléfono', consultor.telefono]];
-  const clRows: [string,string][] = [['Nombre', cliente.nombre], ['Dirección', cliente.direccion], ['Correo', cliente.correo], ['Teléfono', cliente.telefono]];
+  const L_NAME = tr('Nombre', 'Name');
+  const L_MAIL = tr('Correo', 'Email');
+  const L_PHONE = tr('Teléfono', 'Phone');
+  const L_ADDR = tr('Dirección', 'Address');
+  const cRows:  [string,string][] = [[L_NAME, consultor.nombre], [L_MAIL, consultor.correo], [L_PHONE, consultor.telefono]];
+  const clRows: [string,string][] = [[L_NAME, cliente.nombre], [L_ADDR, cliente.direccion], [L_MAIL, cliente.correo], [L_PHONE, cliente.telefono]];
   const maxIC = Math.max(cRows.length, clRows.length);
 
-  cardHdr(M,        y, HALF, HDR + maxIC*RH, HDR, NAVY, 'CONSULTOR');
-  cardHdr(M+HALF+4, y, HALF, HDR + maxIC*RH, HDR, NAVY, 'CLIENTE');
+  cardHdr(M,        y, HALF, HDR + maxIC*RH, HDR, NAVY, tr('CONSULTOR', 'CONSULTANT'));
+  cardHdr(M+HALF+4, y, HALF, HDR + maxIC*RH, HDR, NAVY, tr('CLIENTE', 'CUSTOMER'));
 
   for (let i = 0; i < maxIC; i++) {
     const ry = y + HDR + i * RH;
@@ -228,18 +264,22 @@ export async function generateQuotePDF(
   y += HDR + maxIC * RH + 4;
 
   // ── Resumen del Proyecto ─────────────────────────────────────────────────
+  const NA = tr('No aplica', 'N/A');
+  const BAT_SING = tr('Batería', 'Battery');
+  const BAT_PLUR = tr('Baterías', 'Batteries');
+  const PLACAS = tr('Placas', 'Panels');
   const sumRows: [string,string,string,string][] = [
-    ['Plan Roofing',   inputs.roofPlan,
-     'Sistema Solar',  inputs.panels > 0 ? `${inputs.panels} Placas · ${(results.systemSize/1000).toFixed(2)} kW` : 'No aplica'],
-    ['Área Total',     `${inputs.roofSqft.toLocaleString('en-US')} sqft`,
-     'Baterías',       inputs.batteries > 0 ? `${inputs.batteries} ${inputs.batteries===1?'Batería':'Baterías'}` : 'No aplica'],
-    ['Financiamiento', inputs.financing==='WH'?'WH Financial':'Oriental Bank',
-     'Valor Cash Total', fmt(results.cashValue)],
-    ['Pronto / Rebaja', inputs.manualPronto>0?`-${fmt(inputs.manualPronto)}`:'—',
-     'Balance a Financiar', fmt(results.valorFinanciado)],
+    [tr('Plan Roofing', 'Roofing Plan'),   inputs.roofPlan,
+     tr('Sistema Solar', 'Solar System'),  inputs.panels > 0 ? `${inputs.panels} ${PLACAS} · ${(results.systemSize/1000).toFixed(2)} kW` : NA],
+    [tr('Área Total', 'Total Area'),     `${inputs.roofSqft.toLocaleString('en-US')} sqft`,
+     BAT_PLUR,       inputs.batteries > 0 ? `${inputs.batteries} ${inputs.batteries===1?BAT_SING:BAT_PLUR}` : NA],
+    [tr('Financiamiento', 'Financing'), inputs.financing==='WH'?'WH Financial':'Oriental Bank',
+     tr('Valor Cash Total', 'Total Cash Value'), fmt(results.cashValue)],
+    [tr('Pronto / Rebaja', 'Down / Rebate'), inputs.manualPronto>0?`-${fmt(inputs.manualPronto)}`:'—',
+     tr('Balance a Financiar', 'Balance to Finance'), fmt(results.valorFinanciado)],
   ];
   const sumH = HDR + sumRows.length * DR;
-  cardHdr(M, y, CW, sumH, HDR, ORANGE, 'RESUMEN DEL PROYECTO');
+  cardHdr(M, y, CW, sumH, HDR, ORANGE, tr('RESUMEN DEL PROYECTO', 'PROJECT SUMMARY'));
   const mid = M + CW / 2;
   sumRows.forEach(([l1, v1, l2, v2], i) => {
     const ry = y + HDR + i * DR;
@@ -258,25 +298,25 @@ export async function generateQuotePDF(
   // ── Sistema seleccionado (3 columnas) ────────────────────────────────────
   const C3W = (CW - 6) / 3;
 
-  const roofR: [string,string][] = [['Plan', inputs.roofPlan], ['Área', `${inputs.roofSqft.toLocaleString('en-US')} sqft`]];
+  const roofR: [string,string][] = [['Plan', inputs.roofPlan], [tr('Área', 'Area'), `${inputs.roofSqft.toLocaleString('en-US')} sqft`]];
   if (inputs.removalPercentage > 0) {
-    roofR.push(['Área Remoción', `${Math.round(inputs.removalPercentage*100)}%`]);
-    roofR.push(['Costo Remoción', fmt(results.roofRemovalValue)]);
+    roofR.push([tr('Área Remoción', 'Removal Area'), `${Math.round(inputs.removalPercentage*100)}%`]);
+    roofR.push([tr('Costo Remoción', 'Removal Cost'), fmt(results.roofRemovalValue)]);
   }
-  if (inputs.roofCashDiscount) roofR.push(['Desc. Cash', '10%']);
-  roofR.push(['Valor Base', fmt(results.roofBaseValue)]);
+  if (inputs.roofCashDiscount) roofR.push([tr('Desc. Cash', 'Cash Disc.'), '10%']);
+  roofR.push([tr('Valor Base', 'Base Value'), fmt(results.roofBaseValue)]);
 
   const solR: [string,string][] = [];
-  if (inputs.panels > 0) { solR.push(['Placas', `${inputs.panels}`]); solR.push(['Potencia', `${(results.systemSize/1000).toFixed(2)} kW`]); }
-  if (inputs.batteries > 0) solR.push(['Baterías', `${inputs.batteries} ${inputs.batteries===1?'Batería':'Baterías'}`]);
-  if (inputs.extendedWarranty) solR.push(['Garantía', 'Incluida']);
-  if (solR.length === 0) solR.push(['Sistema Solar', 'No aplica']);
+  if (inputs.panels > 0) { solR.push([PLACAS, `${inputs.panels}`]); solR.push([tr('Potencia', 'Power'), `${(results.systemSize/1000).toFixed(2)} kW`]); }
+  if (inputs.batteries > 0) solR.push([BAT_PLUR, `${inputs.batteries} ${inputs.batteries===1?BAT_SING:BAT_PLUR}`]);
+  if (inputs.extendedWarranty) solR.push([tr('Garantía', 'Warranty'), tr('Incluida', 'Included')]);
+  if (solR.length === 0) solR.push([tr('Sistema Solar', 'Solar System'), NA]);
 
-  const finR: [string,string][] = [['Entidad', inputs.financing==='WH'?'WH Financial':'Oriental Bank']];
-  if (inputs.vipDiscount) finR.push(['Desc. VIP', '5%']);
-  if (inputs.existingSolarCustomer) finR.push(['Cliente Solar', 'Sí']);
-  if (inputs.employeeDiscountKey !== 'Ninguno') finR.push(['Desc. Empleado', inputs.employeeDiscountKey]);
-  if (inputs.applyOrientalSpecialDiscount && inputs.financing==='ORIENTAL') finR.push(['Bono Oriental', '-$12,500']);
+  const finR: [string,string][] = [[tr('Entidad', 'Entity'), inputs.financing==='WH'?'WH Financial':'Oriental Bank']];
+  if (inputs.vipDiscount) finR.push([tr('Desc. VIP', 'VIP Disc.'), '5%']);
+  if (inputs.existingSolarCustomer) finR.push([tr('Cliente Solar', 'Solar Customer'), tr('Sí', 'Yes')]);
+  if (inputs.employeeDiscountKey !== 'Ninguno') finR.push([tr('Desc. Empleado', 'Employee Disc.'), inputs.employeeDiscountKey]);
+  if (inputs.applyOrientalSpecialDiscount && inputs.financing==='ORIENTAL') finR.push([tr('Bono Oriental', 'Oriental Bonus'), '-$12,500']);
 
   const maxC3 = Math.max(roofR.length, solR.length, finR.length);
   const c3H   = HDR + maxC3 * DR;
@@ -290,9 +330,9 @@ export async function generateQuotePDF(
   // En modo claro: usa NAVY para que el texto blanco sea legible
   const finTitleBg: [number,number,number] = isDarkMode ? T.pageBg : NAVY;
 
-  drawSys(M,           'ROOFING',          NAVY,       roofR);
-  drawSys(M+C3W+3,     'SOLAR & BATERÍAS', ORANGE,     solR);
-  drawSys(M+(C3W+3)*2, 'FINANCIAMIENTO',   finTitleBg, finR, true);
+  drawSys(M,           'ROOFING',                                       NAVY,       roofR);
+  drawSys(M+C3W+3,     tr('SOLAR & BATERÍAS', 'SOLAR & BATTERIES'),     ORANGE,     solR);
+  drawSys(M+(C3W+3)*2, tr('FINANCIAMIENTO', 'FINANCING'),               finTitleBg, finR, true);
   y += c3H + 4;
 
   // ── Desglose + Opciones de Pago (2 columnas) ─────────────────────────────
@@ -301,18 +341,27 @@ export async function generateQuotePDF(
   const LX = M;
   const RX = M + LW + 4;
 
-  const pRows: [string,string,boolean?][] = [['Valor Base Roofing', fmt(results.roofBaseValue)]];
-  if (results.roofRemovalValue > 0)   pRows.push(['Remoción de Sellado', fmt(results.roofRemovalValue)]);
-  if (inputs.roofCashDiscount)        pRows.push(['Descuento Cash (10%)', `-${fmt(results.roofCashDiscountValue)}`, true]);
-  pRows.push(['IVU (Exento)', fmt(results.roofIvu)]);
-  if (inputs.existingSolarCustomer)   pRows.push(['Desc. Cliente Solar', `-${fmt(results.vipRoofingDiscount)}`, true]);
-  if (inputs.panels > 0)              pRows.push([`Placas (${(results.systemSize/1000).toFixed(2)} kW)`, fmt(results.solarValue)]);
-  if (results.batteryValue > 0)       pRows.push(['Baterías', fmt(results.batteryValue)]);
+  const pRows: [string,string,boolean?][] = [[tr('Valor Base Roofing', 'Roofing Base Value'), fmt(results.roofBaseValue)]];
+  if (results.roofRemovalValue > 0)   pRows.push([tr('Remoción de Sellado', 'Sealing Removal'), fmt(results.roofRemovalValue)]);
+  if (inputs.roofCashDiscount)        pRows.push([tr('Descuento Cash (10%)', 'Cash Discount (10%)'), `-${fmt(results.roofCashDiscountValue)}`, true]);
+  pRows.push([tr('IVU (Exento)', 'Tax (Exempt)'), fmt(results.roofIvu)]);
+  if (inputs.existingSolarCustomer)   pRows.push([tr('Desc. Cliente Solar', 'Solar Customer Disc.'), `-${fmt(results.vipRoofingDiscount)}`, true]);
+  if (inputs.panels > 0)              pRows.push([`${PLACAS} (${(results.systemSize/1000).toFixed(2)} kW)`, fmt(results.solarValue)]);
+  if (results.batteryValue > 0)       pRows.push([BAT_PLUR, fmt(results.batteryValue)]);
   if (results.solarWarrantyValue + results.batteryWarrantyValue > 0)
-    pRows.push(['Garantías', fmt(results.solarWarrantyValue + results.batteryWarrantyValue)]);
-  if (inputs.vipDiscount)             pRows.push(['Descuento VIP (5%)', `-${fmt(results.vipProjectDiscount)}`, true]);
+    pRows.push([tr('Garantías', 'Warranties'), fmt(results.solarWarrantyValue + results.batteryWarrantyValue)]);
+  if (inputs.vipDiscount)             pRows.push([tr('Descuento VIP (5%)', 'VIP Discount (5%)'), `-${fmt(results.vipProjectDiscount)}`, true]);
   if (results.employeeDiscountValue > 0)
-    pRows.push([`Desc. Empleado`, `-${fmt(results.employeeDiscountValue)}`, true]);
+    pRows.push([tr('Desc. Empleado', 'Employee Disc.'), `-${fmt(results.employeeDiscountValue)}`, true]);
+  // Promo Madres / Farmacias (si activas)
+  if (promos?.madresRoofing && results.madresRoofingDiscountValue > 0)
+    pRows.push([tr('Promo Madres 2026 (Roofing)', "Mother's 2026 (Roofing)"), `-${fmt(results.madresRoofingDiscountValue)}`, true]);
+  if (promos?.madresSolar && results.madresSolarDiscountValue > 0)
+    pRows.push([tr('Promo Madres 2026 (Solar)', "Mother's 2026 (Solar)"), `-${fmt(results.madresSolarDiscountValue)}`, true]);
+  if (promos?.farmaciasRoofing && results.farmaciasRoofingDiscountValue > 0)
+    pRows.push([tr('Promo Farmacias (Roofing, 10%)', 'Pharmacy Promo (Roofing, 10%)'), `-${fmt(results.farmaciasRoofingDiscountValue)}`, true]);
+  if (promos?.farmaciasSolar && results.farmaciasSolarDiscountValue > 0)
+    pRows.push([tr('Promo Farmacias (Solar, 10%)', 'Pharmacy Promo (Solar, 10%)'), `-${fmt(results.farmaciasSolarDiscountValue)}`, true]);
 
   const hasPronte = inputs.manualPronto > 0;
   const leftExtra = (hasPronte ? 9 : 0);
@@ -324,7 +373,7 @@ export async function generateQuotePDF(
   const colH   = Math.max(leftH, rightH);
 
   // — Desglose (izquierda)
-  cardHdr(LX, y, LW, colH, HDR, NAVY, 'DESGLOSE DE PRECIOS');
+  cardHdr(LX, y, LW, colH, HDR, NAVY, tr('DESGLOSE DE PRECIOS', 'PRICE BREAKDOWN'));
   let ly = y + HDR;
   pRows.forEach(([lbl, val, isDisc], i) => {
     if (i%2===1) { doc.setFillColor(...T.rowAlt); doc.rect(LX, ly, LW, DR, 'F'); }
@@ -336,55 +385,56 @@ export async function generateQuotePDF(
     doc.text(val, LX + LW - 3, ly + DR - 1.3, { align: 'right' });
     ly += DR;
   });
-  // Línea separadora naranja
-  doc.setDrawColor(...ORANGE); doc.setLineWidth(0.5);
+  // Línea separadora — antes naranja, ahora navy para reducir naranja
+  doc.setDrawColor(...NAVY); doc.setLineWidth(0.5);
   doc.line(LX + 3, ly + 1, LX + LW - 3, ly + 1);
   ly += 3;
-  // Valor Cash Total
-  doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...ORANGE);
-  doc.text('VALOR CASH TOTAL', LX + 3, ly + 5.5);
+  // Valor Cash Total — antes ORANGE, ahora NAVY (negro fuerte, sin tanto naranja)
+  doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...NAVY);
+  doc.text(tr('VALOR CASH TOTAL', 'TOTAL CASH VALUE'), LX + 3, ly + 5.5);
   doc.text(fmt(results.cashValue), LX + LW - 3, ly + 5.5, { align: 'right' });
   ly += 8;
   if (hasPronte) {
     doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...T.textLabel);
-    doc.text('Pronto Aportado', LX + 3, ly + 5.5);
+    doc.text(tr('Pronto Aportado', 'Down Payment'), LX + 3, ly + 5.5);
     doc.text(`-${fmt(inputs.manualPronto)}`, LX + LW - 3, ly + 5.5, { align: 'right' });
     ly += 8;
   }
   // Balance a Financiar
   doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textPrimary);
-  doc.text('BALANCE A FINANCIAR', LX + 3, ly + 5.5);
+  doc.text(tr('BALANCE A FINANCIAR', 'BALANCE TO FINANCE'), LX + 3, ly + 5.5);
   doc.text(fmt(results.valorFinanciado), LX + LW - 3, ly + 5.5, { align: 'right' });
 
   // — Opciones de Pago (derecha)
-  cardHdr(RX, y, RW, colH, HDR, ORANGE, 'OPCIONES DE PAGO MENSUAL');
+  cardHdr(RX, y, RW, colH, HDR, ORANGE, tr('OPCIONES DE PAGO MENSUAL', 'MONTHLY PAYMENT OPTIONS'));
   let ry = y + HDR;
   // Cabecera de tabla
   doc.setFillColor(...NAVY);
   doc.rect(RX, ry, RW, 7, 'F');
   doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...LBLUE);
   const c1=RX+3, c2=RX+22, c3=RX+48;
-  doc.text('PLAZO',        c1, ry + 5);
-  doc.text('APR',          c2, ry + 5);
-  doc.text('PAGO MENSUAL', c3, ry + 5);
+  doc.text(tr('PLAZO', 'TERM'),                c1, ry + 5);
+  doc.text('APR',                              c2, ry + 5);
+  doc.text(tr('PAGO MENSUAL', 'MONTHLY PAY'),  c3, ry + 5);
   ry += 7;
 
   results.monthlyPayments.forEach((pay, idx) => {
     if (idx%2===1) { doc.setFillColor(...T.rowAlt); doc.rect(RX, ry, RW, PAY_H, 'F'); }
     const midY = ry + PAY_H / 2;
     doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...T.textLabel);
-    doc.text(`${pay.years} años`, c1, midY + 1.2);
+    doc.text(`${pay.years} ${tr('años', 'years')}`, c1, midY + 1.2);
     const aprTxt = pay.maxRate
       ? `${(pay.rate*100).toFixed(1)}-${(pay.maxRate*100).toFixed(1)}%`
       : `${(pay.rate*100).toFixed(2)}%`;
     doc.text(aprTxt, c2, midY + 1.2);
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(...ORANGE);
+    // Monto mensual — antes ORANGE, ahora T.textPrimary (negro) bold para reducir naranja
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textPrimary);
     if (pay.maxAmount) {
       // Mostrar rango Desde / Hasta en dos líneas
       doc.setFontSize(6.5);
-      doc.text(`Desde: ${fmt(pay.amount)}`,    c3, midY - 1.2);
-      doc.setTextColor(...LBLUE);
-      doc.text(`Hasta: ${fmt(pay.maxAmount)}`, c3, midY + 3.2);
+      doc.text(`${tr('Desde', 'From')}: ${fmt(pay.amount)}`,    c3, midY - 1.2);
+      doc.setTextColor(...NAVY);
+      doc.text(`${tr('Hasta', 'Up to')}: ${fmt(pay.maxAmount)}`, c3, midY + 3.2);
     } else {
       doc.setFontSize(7);
       doc.text(fmt(pay.amount), c3, midY + 1.2);
@@ -393,8 +443,9 @@ export async function generateQuotePDF(
   });
   ry += 3;
   doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textPrimary);
-  doc.text('Balance a Financiar', c1, ry + 5);
-  doc.setTextColor(...ORANGE); doc.setFontSize(9);
+  doc.text(tr('Balance a Financiar', 'Balance to Finance'), c1, ry + 5);
+  // Valor del balance — antes ORANGE, ahora NAVY (más serio, sin saturar naranja)
+  doc.setTextColor(...NAVY); doc.setFontSize(9);
   doc.text(fmt(results.valorFinanciado), RX + RW - 3, ry + 5, { align: 'right' });
 
   y += colH + 4;
@@ -414,11 +465,16 @@ export async function generateQuotePDF(
   doc.rect(M + 3, y + 3.2, 3, 3, 'F');
   // Texto del badge (sin caracteres Unicode fuera de Latin-1)
   doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...eligColor);
-  doc.text(results.conditionOk ? 'PROYECTO ELEGIBLE' : 'PROYECTO NO ELEGIBLE', M + 8, y + 6.5);
+  doc.text(
+    results.conditionOk
+      ? tr('PROYECTO ELEGIBLE', 'ELIGIBLE PROJECT')
+      : tr('PROYECTO NO ELEGIBLE', 'NOT ELIGIBLE PROJECT'),
+    M + 8, y + 6.5
+  );
   // Roofing share a la derecha
   doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...MGRAY);
   doc.text(
-    `Roofing Share: ${(results.roofShare*100).toFixed(1)}%  |  Límite: ${(results.roofLimit*100).toFixed(0)}%`,
+    `Roofing Share: ${(results.roofShare*100).toFixed(1)}%  |  ${tr('Límite', 'Limit')}: ${(results.roofLimit*100).toFixed(0)}%`,
     M + CW - 4, y + 6.5, { align: 'right' }
   );
   y += 9.5;
@@ -428,7 +484,64 @@ export async function generateQuotePDF(
     doc.setFillColor(...AMBER);
     doc.roundedRect(M, y, CW, 7.5, 2, 2, 'F');
     doc.setTextColor(...WHITE); doc.setFontSize(7); doc.setFont('helvetica', 'bold');
-    doc.text(`! Para elegibilidad se requiere pronto de: ${fmt(results.requiredProntoForCompliance)}`, PW/2, y + 5, { align: 'center' });
+    doc.text(
+      tr(
+        `! Para elegibilidad se requiere pronto de: ${fmt(results.requiredProntoForCompliance)}`,
+        `! Eligibility requires a down payment of: ${fmt(results.requiredProntoForCompliance)}`,
+      ),
+      PW/2, y + 5, { align: 'center' }
+    );
+    y += 7.5;
+  }
+
+  // ── BANNERS DE PROMOCIONES (Madres + Farmacias) ───────────────────────────
+  const promoMadresActive    = !!(promos?.madresRoofing || promos?.madresSolar);
+  const promoFarmaciasActive = !!(promos?.farmaciasRoofing || promos?.farmaciasSolar);
+
+  if (promoMadresActive) {
+    y += 3;
+    const BANNER_H = 12;
+    doc.setFillColor(...MADRES_PINK_BG);
+    doc.setDrawColor(...MADRES_PINK_BORDER); doc.setLineWidth(0.5);
+    doc.roundedRect(M, y, CW, BANNER_H, 2, 2, 'FD');
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...MADRES_PINK_TEXT);
+    doc.text(
+      tr('♥ ♥ Promo Mes de las Madres 2026 ♥ ♥', "♥ ♥ Mother's Day Promo 2026 ♥ ♥"),
+      PW/2, y + 4.5, { align: 'center' }
+    );
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+    doc.text(
+      tr(
+        'Descuentos aplicados · Vigente del 7 al 14 de mayo 2026 · Solo en showroom con cliente citado',
+        'Promo discounts applied · Valid May 7–14, 2026 · In-showroom only with scheduled customer',
+      ),
+      PW/2, y + 8.5, { align: 'center' }
+    );
+    doc.setFontSize(6.5);
+    doc.text('Roosevelt · Mayagüez · Ponce · Hatillo', PW/2, y + 11.5, { align: 'center' });
+    y += BANNER_H;
+  }
+
+  if (promoFarmaciasActive) {
+    y += 3;
+    const BANNER_H = 10;
+    doc.setFillColor(...FARM_GREEN_BG);
+    doc.setDrawColor(...FARM_GREEN_BORDER); doc.setLineWidth(0.5);
+    doc.roundedRect(M, y, CW, BANNER_H, 2, 2, 'FD');
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...FARM_GREEN_TEXT);
+    doc.text(
+      tr('Promo Farmacias — 10% Descuento', 'Pharmacy Promo — 10% Off'),
+      PW/2, y + 4.5, { align: 'center' }
+    );
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+    doc.text(
+      tr(
+        'Aplica a profesionales licenciados de farmacia · Validación en showroom',
+        'For licensed pharmacy professionals · In-showroom validation',
+      ),
+      PW/2, y + 8.5, { align: 'center' }
+    );
+    y += BANNER_H;
   }
 
   // ── Footer ────────────────────────────────────────────────────────────────
@@ -474,11 +587,11 @@ export async function generateQuotePDF(
 
   // Columna 2: contacto
   doc.setTextColor(...WHITE); doc.setFontSize(7); doc.setFont('helvetica', 'bold');
-  doc.text('Contáctanos', C2_X, FY + 7);
+  doc.text(tr('Contáctanos', 'Contact Us'), C2_X, FY + 7);
   doc.setTextColor(...LBLUE); doc.setFontSize(6.8); doc.setFont('helvetica', 'normal');
   doc.text('ventas@windmarhome.com', C2_X, FY + 12);
-  doc.text('787-395-7766 · Línea Windmar Home', C2_X, FY + 16);
-  doc.text('Telemercadeo 811 · Ventas 839',     C2_X, FY + 20);
+  doc.text(`787-395-7766 · ${tr('Línea Windmar Home', 'Windmar Home Line')}`, C2_X, FY + 16);
+  doc.text(tr('Telemercadeo 811 · Ventas 839', 'Telemarketing 811 · Sales 839'), C2_X, FY + 20);
 
   // Separador vertical 2-3
   doc.setDrawColor(140, 140, 170);
@@ -487,11 +600,11 @@ export async function generateQuotePDF(
 
   // Columna 3: dirección
   doc.setTextColor(...WHITE); doc.setFontSize(7); doc.setFont('helvetica', 'bold');
-  doc.text('Dirección', C3_X, FY + 7);
+  doc.text(tr('Dirección', 'Address'), C3_X, FY + 7);
   doc.setTextColor(...LBLUE); doc.setFontSize(6.8); doc.setFont('helvetica', 'normal');
   doc.text('1255 Avenida F.D. Roosevelt,', C3_X, FY + 12);
   doc.text('San Juan, 00920, Puerto Rico.', C3_X, FY + 16);
-  doc.text(`Cotización · ${date}`,         C3_X, FY + 20);
+  doc.text(`${tr('Cotización', 'Quote')} · ${date}`, C3_X, FY + 20);
 
   // ── Merge: Pág 1 institucional → Cotización → Págs 2+ institucionales ────
   const clienteName = cliente.nombre.trim().replace(/\s+/g, '_') || 'Cliente';
@@ -536,16 +649,19 @@ export async function generateComparisonPDF(
   allResults:  QuoteResults[],
   consultor:   ConsultorInfo,
   cliente:     ClienteInfo,
-  isDarkMode   = false
+  isDarkMode   = false,
+  idioma:      Idioma = 'es',
+  promos?:     PromoFlagsPDF,
 ): Promise<void> {
 
+  const tr  = makeTr(idioma);
   const T   = getTheme(isDarkMode);
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
   const PW  = doc.internal.pageSize.getWidth();
   const PH  = doc.internal.pageSize.getHeight();
   const M   = 12;
   const CW  = PW - M * 2;
-  const date = new Date().toLocaleDateString('es-PR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const date = new Date().toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-PR', { day: '2-digit', month: 'long', year: 'numeric' });
   const logoData = await loadLogo('https://i.postimg.cc/RF76rLv3/logo.png');
 
   const N = plans.length;
@@ -575,13 +691,14 @@ export async function generateComparisonPDF(
 
   // ── Header right ────────────────────────────────────────────────────────
   const rx = PW - M;
-  doc.setFontSize(9);   doc.setFont('helvetica', 'bold');   doc.setTextColor(...ORANGE);
+  // Antes ORANGE — ahora NAVY (más serio, sin saturar naranja)
+  doc.setFontSize(9);   doc.setFont('helvetica', 'bold');   doc.setTextColor(...NAVY);
   doc.text('787-395-7766', rx, 9.5,  { align: 'right' });
-  doc.setFontSize(8);   doc.setFont('helvetica', 'normal'); doc.setTextColor(...LBLUE);
-  doc.text('Línea Windmar Home', rx, 14, { align: 'right' });
+  doc.setFontSize(8);   doc.setFont('helvetica', 'normal'); doc.setTextColor(...MGRAY);
+  doc.text(tr('Línea Windmar Home', 'Windmar Home Line'), rx, 14, { align: 'right' });
   doc.setFontSize(7.5); doc.setTextColor(...MGRAY);
-  doc.text('Roofing · Solar · Baterías de Alta Ingeniería', rx, 17.5, { align: 'right' });
-  doc.setFontSize(8);   doc.setTextColor(...WHITE);
+  doc.text(tr('Roofing · Solar · Baterías de Alta Ingeniería', 'Roofing · Solar · High-Engineering Batteries'), rx, 17.5, { align: 'right' });
+  doc.setFontSize(8);   doc.setTextColor(...NAVY);
   doc.text(date, rx, 21.5, { align: 'right' });
 
   // ── Separator ───────────────────────────────────────────────────────────
@@ -592,11 +709,12 @@ export async function generateComparisonPDF(
 
   // ── Title ───────────────────────────────────────────────────────────────
   doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textPrimary);
-  doc.text('COMPARATIVA — PROYECTO COMPLETO', M, y + 7);
+  doc.text(tr('COMPARATIVA — PROYECTO COMPLETO', 'COMPARISON — COMPLETE PROJECT'), M, y + 7);
   y += 9;
-  doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...ORANGE);
+  // Antes ORANGE — ahora NAVY para reducir naranja
+  doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...NAVY);
   const planLabel = plans.map(p => p.charAt(0) + p.slice(1).toLowerCase()).join(' · ');
-  doc.text(`${planLabel}  ·  Roofing + Solar + Batería`, M, y + 5.5);
+  doc.text(`${planLabel}  ·  ${tr('Roofing + Solar + Batería', 'Roofing + Solar + Battery')}`, M, y + 5.5);
   y += 8;
 
   // ── Layout constants ─────────────────────────────────────────────────────
@@ -621,12 +739,16 @@ export async function generateComparisonPDF(
 
   // ── Consultor + Cliente ──────────────────────────────────────────────────
   const HALF = (CW - 4) / 2;
-  const cRows:  [string,string][] = [['Nombre', consultor.nombre], ['Correo', consultor.correo], ['Teléfono', consultor.telefono]];
-  const clRows: [string,string][] = [['Nombre', cliente.nombre], ['Dirección', cliente.direccion], ['Correo', cliente.correo], ['Teléfono', cliente.telefono]];
+  const L_NAME = tr('Nombre', 'Name');
+  const L_MAIL = tr('Correo', 'Email');
+  const L_PHONE = tr('Teléfono', 'Phone');
+  const L_ADDR = tr('Dirección', 'Address');
+  const cRows:  [string,string][] = [[L_NAME, consultor.nombre], [L_MAIL, consultor.correo], [L_PHONE, consultor.telefono]];
+  const clRows: [string,string][] = [[L_NAME, cliente.nombre], [L_ADDR, cliente.direccion], [L_MAIL, cliente.correo], [L_PHONE, cliente.telefono]];
   const maxIC = Math.max(cRows.length, clRows.length);
 
-  cardHdr(M,        y, HALF, HDR + maxIC * RH, HDR, NAVY, 'CONSULTOR');
-  cardHdr(M+HALF+4, y, HALF, HDR + maxIC * RH, HDR, NAVY, 'CLIENTE');
+  cardHdr(M,        y, HALF, HDR + maxIC * RH, HDR, NAVY, tr('CONSULTOR', 'CONSULTANT'));
+  cardHdr(M+HALF+4, y, HALF, HDR + maxIC * RH, HDR, NAVY, tr('CLIENTE', 'CUSTOMER'));
   for (let i = 0; i < maxIC; i++) {
     const ry = y + HDR + i * RH;
     if (i % 2 === 1) {
@@ -647,20 +769,24 @@ export async function generateComparisonPDF(
 
   // ── Shared System Summary ────────────────────────────────────────────────
   const mid = M + CW / 2;
+  const NA = tr('No aplica', 'N/A');
+  const BAT_SING = tr('Batería', 'Battery');
+  const BAT_PLUR = tr('Baterías', 'Batteries');
+  const PLACAS = tr('Placas', 'Panels');
   const sysRows: [string,string,string,string][] = [
-    ['Área Total',     `${baseInputs.roofSqft.toLocaleString('en-US')} sqft`,
-     'Sistema Solar',  baseInputs.panels > 0 ? `${baseInputs.panels} Placas · ${(allResults[0].systemSize/1000).toFixed(2)} kW` : 'No aplica'],
-    ['Financiamiento', baseInputs.financing === 'WH' ? 'WH Financial' : 'Oriental Bank',
-     'Baterías',       baseInputs.batteries > 0 ? `${baseInputs.batteries} ${baseInputs.batteries === 1 ? 'Batería' : 'Baterías'}` : 'No aplica'],
+    [tr('Área Total', 'Total Area'),     `${baseInputs.roofSqft.toLocaleString('en-US')} sqft`,
+     tr('Sistema Solar', 'Solar System'),  baseInputs.panels > 0 ? `${baseInputs.panels} ${PLACAS} · ${(allResults[0].systemSize/1000).toFixed(2)} kW` : NA],
+    [tr('Financiamiento', 'Financing'), baseInputs.financing === 'WH' ? 'WH Financial' : 'Oriental Bank',
+     BAT_PLUR,       baseInputs.batteries > 0 ? `${baseInputs.batteries} ${baseInputs.batteries === 1 ? BAT_SING : BAT_PLUR}` : NA],
   ];
   if (baseInputs.removalPercentage > 0 || baseInputs.manualPronto > 0) {
     sysRows.push([
-      '% Remoción',      baseInputs.removalPercentage > 0 ? `${Math.round(baseInputs.removalPercentage * 100)}%` : '—',
-      'Pronto Adicional', baseInputs.manualPronto > 0 ? `-${fmt(baseInputs.manualPronto)}` : '—',
+      tr('% Remoción', '% Removal'),      baseInputs.removalPercentage > 0 ? `${Math.round(baseInputs.removalPercentage * 100)}%` : '—',
+      tr('Pronto Adicional', 'Additional Down'), baseInputs.manualPronto > 0 ? `-${fmt(baseInputs.manualPronto)}` : '—',
     ]);
   }
   const sysH = HDR + sysRows.length * DR;
-  cardHdr(M, y, CW, sysH, HDR, ORANGE, 'CONFIGURACIÓN DEL SISTEMA');
+  cardHdr(M, y, CW, sysH, HDR, ORANGE, tr('CONFIGURACIÓN DEL SISTEMA', 'SYSTEM CONFIGURATION'));
   sysRows.forEach(([l1, v1, l2, v2], i) => {
     const ry = y + HDR + i * DR;
     if (i % 2 === 1) { doc.setFillColor(...T.rowAlt); doc.rect(M, ry, CW, DR, 'F'); }
@@ -706,10 +832,17 @@ export async function generateComparisonPDF(
     if (showBatt)     tableBodyH += DR;
     if (showWarranty) tableBodyH += DR;
   }
-  if (showVip || showEmpl) {
+  // Promociones — Madres / Farmacias
+  const showMadresPre    = !!(promos?.madresRoofing || promos?.madresSolar);
+  const showFarmaciasPre = !!(promos?.farmaciasRoofing || promos?.farmaciasSolar);
+  if (showVip || showEmpl || showMadresPre || showFarmaciasPre) {
     tableBodyH += SUB_H;
     if (showVip)  tableBodyH += DR;
     if (showEmpl) tableBodyH += DR;
+    if (promos?.madresRoofing)    tableBodyH += DR;
+    if (promos?.madresSolar)      tableBodyH += DR;
+    if (promos?.farmaciasRoofing) tableBodyH += DR;
+    if (promos?.farmaciasSolar)   tableBodyH += DR;
   }
   tableBodyH += SUB_H + DR;                                  // TOTALES: header + cash
   if (showPronte) tableBodyH += DR;
@@ -726,14 +859,14 @@ export async function generateComparisonPDF(
   doc.roundedRect(M, y, CW, HDR, 2, 2, 'F');
   doc.rect(M, y + HDR - 2, CW, 2, 'F');
   doc.setTextColor(...WHITE); doc.setFontSize(8.5); doc.setFont('helvetica', 'bold');
-  doc.text('DESGLOSE COMPARATIVO DE PRECIOS', M + 4, y + HDR - 1.8);
+  doc.text(tr('DESGLOSE COMPARATIVO DE PRECIOS', 'COMPARATIVE PRICE BREAKDOWN'), M + 4, y + HDR - 1.8);
   y += HDR;
 
   // Plan header badges
   doc.setFillColor(...NAVY);
   doc.rect(M, y, CW, PLAN_HDR_H, 'F');
   doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...LBLUE);
-  doc.text('CONCEPTO', M + 3, y + PLAN_HDR_H - 2);
+  doc.text(tr('CONCEPTO', 'CONCEPT'), M + 3, y + PLAN_HDR_H - 2);
   plans.forEach((plan, i) => {
     const pc = PLAN_COLORS[plan];
     const px = planX[i];
@@ -761,11 +894,12 @@ export async function generateComparisonPDF(
     if (dataIdx % 2 === 1) { doc.setFillColor(...T.rowAlt); doc.rect(M, y, CW, DR, 'F'); }
     doc.setFontSize(isTotal ? 7.5 : 7);
     doc.setFont('helvetica', isTotal ? 'bold' : 'normal');
-    doc.setTextColor(...(isTotal ? ORANGE : T.textLabel));
+    // Totales antes en ORANGE — ahora NAVY para reducir naranja
+    doc.setTextColor(...(isTotal ? NAVY : T.textLabel));
     doc.text(label, M + 3, y + DR - 1.3);
     values.forEach((val, i) => {
       doc.setFont('helvetica', isTotal ? 'bold' : 'normal');
-      doc.setTextColor(...(isTotal ? ORANGE : isDisc ? RED : T.textPrimary));
+      doc.setTextColor(...(isTotal ? NAVY : isDisc ? RED : T.textPrimary));
       doc.text(val, planX[i] + PLAN_W - 2, y + DR - 1.3, { align: 'right' });
     });
     y += DR;
@@ -774,33 +908,39 @@ export async function generateComparisonPDF(
 
   // ROOFING rows
   drawSub('ROOFING');
-  drawRow('Tasa/sqft',            plans.map(p => `$${ROOF_PLAN_RATES[p].toFixed(2)}/sqft`));
-  drawRow('Valor Base Roofing',   allResults.map(r => fmt(r.roofBaseValue)));
-  if (showRemoval)  drawRow('Remoción de Sellado',  allResults.map(r => fmt(r.roofRemovalValue)));
-  if (showCashDisc) drawRow('Desc. Cash (10%)',      allResults.map(r => `-${fmt(r.roofCashDiscountValue)}`), true);
-  if (showSolarCli) drawRow('Desc. Cliente Solar',   allResults.map(() => `-${fmt(allResults[0].vipRoofingDiscount)}`), true);
-  drawRow('IVU (Exento - Proy. Completo)', plans.map(() => '$0.00'));
+  drawRow(tr('Tasa/sqft', 'Rate/sqft'),            plans.map(p => `$${ROOF_PLAN_RATES[p].toFixed(2)}/sqft`));
+  drawRow(tr('Valor Base Roofing', 'Roofing Base Value'),   allResults.map(r => fmt(r.roofBaseValue)));
+  if (showRemoval)  drawRow(tr('Remoción de Sellado', 'Sealing Removal'),  allResults.map(r => fmt(r.roofRemovalValue)));
+  if (showCashDisc) drawRow(tr('Desc. Cash (10%)', 'Cash Disc. (10%)'),    allResults.map(r => `-${fmt(r.roofCashDiscountValue)}`), true);
+  if (showSolarCli) drawRow(tr('Desc. Cliente Solar', 'Solar Customer Disc.'),   allResults.map(() => `-${fmt(allResults[0].vipRoofingDiscount)}`), true);
+  drawRow(tr('IVU (Exento - Proy. Completo)', 'Tax (Exempt - Complete Project)'), plans.map(() => '$0.00'));
 
   // SOLAR & BATERÍAS rows
   if (showPanels || showBatt) {
-    drawSub('SOLAR & BATERÍAS');
-    if (showPanels)   drawRow(`Placas (${(allResults[0].systemSize/1000).toFixed(2)} kW)`, allResults.map(r => fmt(r.solarValue)));
-    if (showBatt)     drawRow(`Baterías (${baseInputs.batteries})`,                        allResults.map(r => fmt(r.batteryValue)));
-    if (showWarranty) drawRow('Garantías Extendidas',                                      allResults.map(r => fmt(r.solarWarrantyValue + r.batteryWarrantyValue)));
+    drawSub(tr('SOLAR & BATERÍAS', 'SOLAR & BATTERIES'));
+    if (showPanels)   drawRow(`${PLACAS} (${(allResults[0].systemSize/1000).toFixed(2)} kW)`, allResults.map(r => fmt(r.solarValue)));
+    if (showBatt)     drawRow(`${BAT_PLUR} (${baseInputs.batteries})`,                        allResults.map(r => fmt(r.batteryValue)));
+    if (showWarranty) drawRow(tr('Garantías Extendidas', 'Extended Warranties'),              allResults.map(r => fmt(r.solarWarrantyValue + r.batteryWarrantyValue)));
   }
 
   // DESCUENTOS rows
-  if (showVip || showEmpl) {
-    drawSub('DESCUENTOS');
-    if (showVip)  drawRow('Descuento VIP (5%)',         allResults.map(r => `-${fmt(r.vipProjectDiscount)}`),   true);
-    if (showEmpl) drawRow(`Desc. ${baseInputs.employeeDiscountKey}`, allResults.map(r => `-${fmt(r.employeeDiscountValue)}`), true);
+  const showMadres    = !!(promos?.madresRoofing || promos?.madresSolar);
+  const showFarmacias = !!(promos?.farmaciasRoofing || promos?.farmaciasSolar);
+  if (showVip || showEmpl || showMadres || showFarmacias) {
+    drawSub(tr('DESCUENTOS', 'DISCOUNTS'));
+    if (showVip)  drawRow(tr('Descuento VIP (5%)', 'VIP Discount (5%)'),                 allResults.map(r => `-${fmt(r.vipProjectDiscount)}`),   true);
+    if (showEmpl) drawRow(`${tr('Desc.', 'Disc.')} ${baseInputs.employeeDiscountKey}`,   allResults.map(r => `-${fmt(r.employeeDiscountValue)}`), true);
+    if (promos?.madresRoofing)    drawRow(tr('Promo Madres 2026 (Roofing)', "Mother's 2026 (Roofing)"), allResults.map(r => `-${fmt(r.madresRoofingDiscountValue)}`), true);
+    if (promos?.madresSolar)      drawRow(tr('Promo Madres 2026 (Solar)', "Mother's 2026 (Solar)"),     allResults.map(r => `-${fmt(r.madresSolarDiscountValue)}`),   true);
+    if (promos?.farmaciasRoofing) drawRow(tr('Promo Farmacias (Roofing, 10%)', 'Pharmacy Promo (Roofing, 10%)'), allResults.map(r => `-${fmt(r.farmaciasRoofingDiscountValue)}`), true);
+    if (promos?.farmaciasSolar)   drawRow(tr('Promo Farmacias (Solar, 10%)', 'Pharmacy Promo (Solar, 10%)'),     allResults.map(r => `-${fmt(r.farmaciasSolarDiscountValue)}`),   true);
   }
 
   // TOTALES rows
-  drawSub('TOTALES');
-  drawRow('VALOR CASH TOTAL',   allResults.map(r => fmt(r.cashValue)),        false, true);
-  if (showPronte) drawRow('Pronto Aportado', plans.map(() => `-${fmt(baseInputs.manualPronto)}`), true);
-  drawRow('BALANCE A FINANCIAR', allResults.map(r => fmt(r.valorFinanciado)), false, true);
+  drawSub(tr('TOTALES', 'TOTALS'));
+  drawRow(tr('VALOR CASH TOTAL', 'TOTAL CASH VALUE'),   allResults.map(r => fmt(r.cashValue)),        false, true);
+  if (showPronte) drawRow(tr('Pronto Aportado', 'Down Payment'), plans.map(() => `-${fmt(baseInputs.manualPronto)}`), true);
+  drawRow(tr('BALANCE A FINANCIAR', 'BALANCE TO FINANCE'), allResults.map(r => fmt(r.valorFinanciado)), false, true);
 
   y += 4;
 
@@ -814,14 +954,14 @@ export async function generateComparisonPDF(
   const payPlanX    = plans.map((_, i) => M + PAY_LBL_W + APR_W + i * (PAY_PLAN_W + COL_GAP));
 
   const payH = HDR + 7 + numTerms * PAY_ROW_H + 2;
-  cardHdr(M, y, CW, payH, HDR, ORANGE, 'OPCIONES DE PAGO MENSUAL — COMPARATIVO');
+  cardHdr(M, y, CW, payH, HDR, ORANGE, tr('OPCIONES DE PAGO MENSUAL — COMPARATIVO', 'MONTHLY PAYMENT OPTIONS — COMPARISON'));
 
   let py = y + HDR;
   // Sub-header
   doc.setFillColor(...NAVY);
   doc.rect(M, py, CW, 7, 'F');
   doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...LBLUE);
-  doc.text('PLAZO',  M + 3,              py + 5);
+  doc.text(tr('PLAZO', 'TERM'),  M + 3,              py + 5);
   doc.text('APR',    M + PAY_LBL_W + 3,  py + 5);
   plans.forEach((plan, i) => {
     const pc = PLAN_COLORS[plan];
@@ -834,19 +974,20 @@ export async function generateComparisonPDF(
     if (idx % 2 === 1) { doc.setFillColor(...T.rowAlt); doc.rect(M, py, CW, PAY_ROW_H, 'F'); }
     const midY = py + PAY_ROW_H / 2;
     doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...T.textLabel);
-    doc.text(`${pay.years} años`, M + 3, midY + 1.2);
+    doc.text(`${pay.years} ${tr('años', 'years')}`, M + 3, midY + 1.2);
     const aprTxt = pay.maxRate
       ? `${(pay.rate * 100).toFixed(1)}-${(pay.maxRate * 100).toFixed(1)}%`
       : `${(pay.rate * 100).toFixed(2)}%`;
     doc.text(aprTxt, M + PAY_LBL_W + 3, midY + 1.2);
     plans.forEach((_, pi) => {
       const p = allResults[pi].monthlyPayments[idx];
-      doc.setFont('helvetica', 'bold'); doc.setTextColor(...ORANGE);
+      // Antes ORANGE — ahora T.textPrimary (negro) bold para reducir naranja
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(...T.textPrimary);
       if (p.maxAmount) {
         doc.setFontSize(6);
-        doc.text(`Desde: ${fmt(p.amount)}`,    payPlanX[pi] + 1, midY - 1.5);
-        doc.setTextColor(...LBLUE);
-        doc.text(`Hasta: ${fmt(p.maxAmount)}`, payPlanX[pi] + 1, midY + 3.0);
+        doc.text(`${tr('Desde', 'From')}: ${fmt(p.amount)}`,    payPlanX[pi] + 1, midY - 1.5);
+        doc.setTextColor(...NAVY);
+        doc.text(`${tr('Hasta', 'Up to')}: ${fmt(p.maxAmount)}`, payPlanX[pi] + 1, midY + 3.0);
       } else {
         doc.setFontSize(7);
         doc.text(fmt(p.amount), payPlanX[pi] + PAY_PLAN_W - 2, midY + 1.2, { align: 'right' });
@@ -869,14 +1010,64 @@ export async function generateComparisonPDF(
     doc.setFillColor(...eligColor);
     doc.rect(bx + 3, y + 3.2, 3, 3, 'F');
     doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(...eligColor);
-    doc.text(r.conditionOk ? 'PROYECTO ELEGIBLE' : 'NO ELEGIBLE', bx + 8, y + 6.5);
+    doc.text(
+      r.conditionOk ? tr('PROYECTO ELEGIBLE', 'ELIGIBLE') : tr('NO ELEGIBLE', 'NOT ELIGIBLE'),
+      bx + 8, y + 6.5
+    );
     doc.setFontSize(6); doc.setFont('helvetica', 'normal'); doc.setTextColor(...MGRAY);
     doc.text(
-      `${plans[i]} · Share: ${(r.roofShare*100).toFixed(1)}% / Lím: ${(r.roofLimit*100).toFixed(0)}%`,
+      `${plans[i]} · Share: ${(r.roofShare*100).toFixed(1)}% / ${tr('Lím', 'Lim')}: ${(r.roofLimit*100).toFixed(0)}%`,
       bx + BADGE_W - 3, y + 6.5, { align: 'right' }
     );
   });
   y += BADGE_H;
+
+  // ── BANNERS DE PROMOCIONES (Madres + Farmacias) ───────────────────────────
+  if (showMadresPre) {
+    y += 3;
+    const BANNER_H = 12;
+    doc.setFillColor(...MADRES_PINK_BG);
+    doc.setDrawColor(...MADRES_PINK_BORDER); doc.setLineWidth(0.5);
+    doc.roundedRect(M, y, CW, BANNER_H, 2, 2, 'FD');
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...MADRES_PINK_TEXT);
+    doc.text(
+      tr('♥ ♥ Promo Mes de las Madres 2026 ♥ ♥', "♥ ♥ Mother's Day Promo 2026 ♥ ♥"),
+      PW/2, y + 4.5, { align: 'center' }
+    );
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+    doc.text(
+      tr(
+        'Descuentos aplicados · Vigente del 7 al 14 de mayo 2026 · Solo en showroom con cliente citado',
+        'Promo discounts applied · Valid May 7–14, 2026 · In-showroom only with scheduled customer',
+      ),
+      PW/2, y + 8.5, { align: 'center' }
+    );
+    doc.setFontSize(6.5);
+    doc.text('Roosevelt · Mayagüez · Ponce · Hatillo', PW/2, y + 11.5, { align: 'center' });
+    y += BANNER_H;
+  }
+
+  if (showFarmaciasPre) {
+    y += 3;
+    const BANNER_H = 10;
+    doc.setFillColor(...FARM_GREEN_BG);
+    doc.setDrawColor(...FARM_GREEN_BORDER); doc.setLineWidth(0.5);
+    doc.roundedRect(M, y, CW, BANNER_H, 2, 2, 'FD');
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...FARM_GREEN_TEXT);
+    doc.text(
+      tr('Promo Farmacias — 10% Descuento', 'Pharmacy Promo — 10% Off'),
+      PW/2, y + 4.5, { align: 'center' }
+    );
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+    doc.text(
+      tr(
+        'Aplica a profesionales licenciados de farmacia · Validación en showroom',
+        'For licensed pharmacy professionals · In-showroom validation',
+      ),
+      PW/2, y + 8.5, { align: 'center' }
+    );
+    y += BANNER_H;
+  }
 
   // ── Footer ──────────────────────────────────────────────────────────────
   const FH = 19.4;
@@ -886,8 +1077,14 @@ export async function generateComparisonPDF(
   doc.setFillColor(...NAVY);
   doc.rect(0, FY + 1, PW, FH, 'F');
   doc.setTextColor(...WHITE); doc.setFontSize(7); doc.setFont('helvetica', 'normal');
-  doc.text(`© 2026 Windmar Home · Generado el ${date}`, PW / 2, FY + 8,  { align: 'center' });
-  doc.text('787-395-7766 | LÍNEA WINDMAR HOME',         PW / 2, FY + 13, { align: 'center' });
+  doc.text(
+    tr(`© 2026 Windmar Home · Generado el ${date}`, `© 2026 Windmar Home · Generated on ${date}`),
+    PW / 2, FY + 8,  { align: 'center' }
+  );
+  doc.text(
+    tr('787-395-7766 | LÍNEA WINDMAR HOME', '787-395-7766 | WINDMAR HOME LINE'),
+    PW / 2, FY + 13, { align: 'center' }
+  );
 
   // ── Merge & Save ────────────────────────────────────────────────────────
   const clienteName = cliente.nombre.trim().replace(/\s+/g, '_') || 'Cliente';
