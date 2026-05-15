@@ -110,13 +110,19 @@ export default function App() {
     try {
       // PDF siempre en tema claro — no se vincula al dark mode de la app
       const PDF_FORCE_LIGHT = false;
+      const promosForPdf = {
+        madresRoofing:     inputs.promoMadresRoofing,
+        madresSolar:       inputs.promoMadresSolar,
+        farmaciasRoofing:  inputs.promoFarmaciasRoofing,
+        farmaciasSolar:    inputs.promoFarmaciasSolar,
+      };
       if (selectedSealPlans.length === 1) {
         const planInputs = { ...inputs, roofPlan: selectedSealPlans[0] };
         const planResults = calculateQuote(planInputs);
-        await generateQuotePDF(planInputs, planResults, consultor, cliente, PDF_FORCE_LIGHT);
+        await generateQuotePDF(planInputs, planResults, consultor, cliente, PDF_FORCE_LIGHT, idiomaPDF, promosForPdf);
       } else {
         const allResults = selectedSealPlans.map(p => calculateQuote({ ...inputs, roofPlan: p }));
-        await generateComparisonPDF(inputs, selectedSealPlans, allResults, consultor, cliente, PDF_FORCE_LIGHT);
+        await generateComparisonPDF(inputs, selectedSealPlans, allResults, consultor, cliente, PDF_FORCE_LIGHT, idiomaPDF, promosForPdf);
       }
     } finally {
       setPdfLoading(false);
